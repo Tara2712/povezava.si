@@ -1,26 +1,16 @@
-import { useEffect, useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Home from './pages/Home'
+import Oseba from './pages/Oseba'
+import Podjetje from './pages/Podjetje'
 
-function App() {
-  const [status, setStatus] = useState('')
-
-  useEffect(() => {
-    fetch('http://localhost:3000')
-      .then(res => res.json())
-      .then(data => setStatus(data.message))
-  }, [])
-
+export default function App() {
   return (
-    <div>
-      <h1>Povezava.si</h1>
-      <p>Backend status: {status}</p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/oseba/:id" element={<Oseba />} />
+        <Route path="/podjetje/:id" element={<Podjetje />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
-
-export default App
-
-
