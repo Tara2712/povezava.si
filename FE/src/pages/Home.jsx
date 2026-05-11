@@ -1,121 +1,82 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Layout from '../components/Layout'
+import Avatar from '../components/Avatar'
 
 const API = 'http://localhost:3000'
 
 function useDebounce(value, delay) {
-  const [debounced, setDebounced] = useState(value)
+  const [d, setD] = useState(value)
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay)
+    const t = setTimeout(() => setD(value), delay)
     return () => clearTimeout(t)
   }, [value, delay])
-  return debounced
+  return d
 }
 
 export default function Home() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
-  const [recent, setRecent] = useState({ osebe: [], podjetja: [] })
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-  const debouncedQuery = useDebounce(query, 300)
+  const dq = useDebounce(query, 300)
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${API}/osebe`).then(r => r.json()),
-      fetch(`${API}/podjetja`).then(r => r.json()),
-    ]).then(([osebe, podjetja]) => {
-      setRecent({
-        osebe: osebe.slice(0, 5),
-        podjetja: podjetja.slice(0, 5),
-      })
-    }).catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    if (!debouncedQuery.trim()) {
-      setResults([])
-      return
-    }
+    if (!dq.trim()) { setResults([]); return }
     setLoading(true)
-    fetch(`${API}/search?q=${encodeURIComponent(debouncedQuery)}`)
+    fetch(`${API}/search?q=${encodeURIComponent(dq)}`)
       .then(r => r.json())
-      .then(data => setResults(data))
+      .then(setResults)
       .catch(() => setResults([]))
       .finally(() => setLoading(false))
-  }, [debouncedQuery])
+  }, [dq])
 
-  function goTo(item) {
+  function go(item) {
     if (item.tip === 'oseba') navigate(`/oseba/${item.id}`)
     else navigate(`/podjetje/${item.id}`)
   }
 
-  return (
-    <div className="page">
-      <header className="site-header">
-        <h1 className="logo">Povezava.si</h1>
-        <p className="tagline">Iskanje poslovnih povezav med osebami in podjetji v Sloveniji</p>
-      </header>
+  function itemName(item) {
+    return item.tip === 'oseba' ? `${item.ime} ${item.priimek}` : item.naziv
+  }
 
-      <div className="search-box">
+  return (
+    <Layout>
+      <div className="search-wrapper">
+        <svg className="search-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
         <input
           className="search-input"
-          type="text"
-          placeholder="Išči osebo ali podjetje..."
+          placeholder="Išči osebo, podjetje, organizacijo..."
           value={query}
           onChange={e => setQuery(e.target.value)}
           autoFocus
         />
-        {loading && <span className="search-spinner" />}
       </div>
 
-      {query.trim() ? (
-        <section className="results">
-          {results.length === 0 && !loading && (
-            <p className="empty">Ni rezultatov za &ldquo;{query}&rdquo;</p>
-          )}
-          {results.map(item => (
-            <button key={`${item.tip}-${item.id}`} className="result-card" onClick={() => goTo(item)}>
-              <span className={`badge badge-${item.tip}`}>{item.tip === 'oseba' ? 'Oseba' : 'Podjetje'}</span>
-              <span className="result-name">
-                {item.tip === 'oseba' ? `${item.ime} ${item.priimek}` : item.naziv}
-              </span>
-              <span className="result-count">{item.stevilo_povezav} {item.stevilo_povezav === '1' ? 'povezava' : 'povezav'}</span>
-            </button>
-          ))}
-        </section>
-      ) : (
-        <div className="recent-grid">
-          <section className="recent-col">
-            <h2>Osebe z največ povezavami</h2>
-            <ul className="list">
-              {recent.osebe.map(o => (
-                <li key={o.id}>
-                  <button className="list-btn" onClick={() => navigate(`/oseba/${o.id}`)}>
-                    <span>{o.ime} {o.priimek}</span>
-                    <span className="count">{o.stevilo_povezav}</span>
-                  </button>
-                </li>
-              ))}
-              {recent.osebe.length === 0 && <li className="empty-small">Ni podatkov</li>}
-            </ul>
-          </section>
-          <section className="recent-col">
-            <h2>Podjetja z največ povezavami</h2>
-            <ul className="list">
-              {recent.podjetja.map(p => (
-                <li key={p.id}>
-                  <button className="list-btn" onClick={() => navigate(`/podjetje/${p.id}`)}>
-                    <span>{p.popolno_ime}</span>
-                    <span className="count">{p.stevilo_povezav}</span>
-                  </button>
-                </li>
-              ))}
-              {recent.podjetja.length === 0 && <li className="empty-small">Ni podatkov</li>}
-            </ul>
-          </section>
-        </div>
+      {query.trim() && (
+        <>
+          <p className="search-label">
+            {loading ? 'Iščem...' : `Rezultati iskanja: "${query}"`}
+          </p>
+          <div className="result-list">
+            {results.map(item => (
+              <button key={`${item.tip}-${item.id}`} className="result-card" onClick={() => go(item)}>
+                <Avatar name={itemName(item)} />
+                <div className="card-body">
+                  <div className="card-name">{itemName(item)}</div>
+                  <div className="card-sub">{item.tip === 'oseba' ? 'Oseba' : 'Organizacija'}</div>
+                </div>
+                <span className="card-count">{item.stevilo_povezav} {item.stevilo_povezav == 1 ? 'povezava' : 'povezav'}</span>
+              </button>
+            ))}
+            {!loading && results.length === 0 && (
+              <p className="empty-msg">Ni rezultatov za &ldquo;{query}&rdquo;</p>
+            )}
+          </div>
+        </>
       )}
-    </div>
+    </Layout>
   )
 }

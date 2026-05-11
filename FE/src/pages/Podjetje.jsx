@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import Layout from '../components/Layout'
+import Avatar from '../components/Avatar'
 
 const API = 'http://localhost:3000'
+
+function fmtDate(d) {
+  if (!d) return null
+  return new Date(d).toLocaleDateString('sl-SI')
+}
 
 export default function Podjetje() {
   const { id } = useParams()
@@ -11,65 +18,70 @@ export default function Podjetje() {
 
   useEffect(() => {
     fetch(`${API}/podjetja/${id}`)
-      .then(r => {
-        if (!r.ok) throw new Error('Podjetje ni najdeno')
-        return r.json()
-      })
+      .then(r => { if (!r.ok) throw new Error('Podjetje ni najdeno'); return r.json() })
       .then(setData)
       .catch(e => setError(e.message))
   }, [id])
 
-  if (error) return (
-    <div className="page">
-      <button className="back-btn" onClick={() => navigate(-1)}>← Nazaj</button>
-      <p className="error">{error}</p>
-    </div>
-  )
+  if (error) return <Layout><p className="error-msg">{error}</p></Layout>
+  if (!data) return <Layout><p className="loading-msg">Nalagam...</p></Layout>
 
-  if (!data) return (
-    <div className="page">
-      <div className="loading">Nalagam...</div>
-    </div>
-  )
+  const first = data.osebe?.[0]
 
   return (
-    <div className="page">
+    <Layout>
       <button className="back-btn" onClick={() => navigate(-1)}>← Nazaj</button>
 
-      <div className="profile-header">
-        <span className="badge badge-podjetje">Podjetje</span>
-        <h1 className="profile-name">{data.popolno_ime}</h1>
-        <div className="profile-meta-row">
-          {data.pravna_oblika && <span className="meta-chip">{data.pravna_oblika}</span>}
-          {data.posta && <span className="meta-chip">{data.posta}</span>}
-          {data.maticna && !data.maticna.startsWith('AI-') && (
-            <span className="meta-chip">MŠ: {data.maticna}</span>
-          )}
+      <div className="profile-card">
+        <div className="profile-top">
+          <Avatar name={data.popolno_ime || '?'} size="lg" />
+          <div className="profile-info">
+            <h1>{data.popolno_ime}</h1>
+            {data.pravna_oblika && <p className="prof-sub">{data.pravna_oblika}</p>}
+            {data.posta && <p className="prof-updated">{data.posta}</p>}
+          </div>
         </div>
+
+        {first && (
+          <div className="profile-details">
+            <div className="detail-item">
+              <label>Zastopnik</label>
+              <span>{first.ime} {first.priimek}</span>
+            </div>
+            <div className="detail-item">
+              <label>Vloga</label>
+              <span>{first.vloga || '—'}</span>
+            </div>
+            {data.maticna && !data.maticna.startsWith('AI-') && (
+              <div className="detail-item">
+                <label>Matična številka</label>
+                <span>{data.maticna}</span>
+              </div>
+            )}
+            <div className="detail-item">
+              <label>Vir</label>
+              {first.vir?.startsWith('http')
+                ? <a href={first.vir} target="_blank" rel="noopener">Odpri vir ↗</a>
+                : <span>{first.vir || '—'}</span>}
+            </div>
+          </div>
+        )}
       </div>
 
-      <section className="connections">
-        <h2>Povezane osebe ({data.osebe?.length || 0})</h2>
-        {data.osebe?.length === 0 && <p className="empty">Ni znanih oseb</p>}
-        <div className="connection-list">
-          {data.osebe?.map((o, i) => (
-            <Link key={i} className="connection-card" to={`/oseba/${o.oseba_id}`}>
-              <div className="conn-main">
-                <span className="conn-name">{o.ime} {o.priimek}</span>
-              </div>
-              <div className="conn-meta">
-                <span className="conn-vloga">{o.vloga}</span>
-                {o.datum_od && <span className="conn-dates">od {formatDate(o.datum_od)}{o.datum_do ? ` do ${formatDate(o.datum_do)}` : ''}</span>}
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </div>
-  )
-}
+      <p className="section-title">Povezane osebe ({data.osebe?.length || 0})</p>
 
-function formatDate(d) {
-  if (!d) return ''
-  return new Date(d).toLocaleDateString('sl-SI')
+      {data.osebe?.map((o, i) => (
+        <Link key={i} className="conn-card" to={`/oseba/${o.oseba_id}`}>
+          <Avatar name={`${o.ime} ${o.priimek}`} size="sm" />
+          <div className="conn-body">
+            <div className="conn-name">{o.ime} {o.priimek}</div>
+            {o.datum_od && <div className="conn-sub">od {fmtDate(o.datum_od)}</div>}
+          </div>
+          <span className="conn-tag conn-tag-green">{o.vloga}</span>
+        </Link>
+      ))}
+
+      {data.osebe?.length === 0 && <p className="empty-msg">Ni znanih oseb</p>}
+    </Layout>
+  )
 }
