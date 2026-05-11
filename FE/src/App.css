@@ -261,6 +261,86 @@
 .filter-btn.active-oseba { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
 .filter-btn.active-media { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
 
+/* ── Hero / landing ── */
+.hero {
+  text-align: center;
+  padding: 40px 0 32px;
+}
+.hero-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.5px;
+  margin-bottom: 10px;
+}
+.hero-sub {
+  font-size: 15px;
+  color: #6b7280;
+  max-width: 480px;
+  margin: 0 auto 28px;
+  line-height: 1.6;
+}
+.stats-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px 28px;
+}
+.stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.stat-n { font-size: 22px; font-weight: 700; color: #111827; }
+.stat-l { font-size: 12px; color: #9ca3af; }
+.stat-div { width: 1px; height: 32px; background: #e5e7eb; }
+
+/* ── Top lists ── */
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #9ca3af;
+  margin-bottom: 10px;
+}
+.top-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 8px;
+}
+@media (max-width: 600px) { .top-grid { grid-template-columns: 1fr; } }
+.top-list { display: flex; flex-direction: column; gap: 6px; }
+.top-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+  width: 100%;
+}
+.top-card:hover { border-color: #d1d5db; background: #fafafa; }
+.top-name { flex: 1; font-size: 14px; color: #111827; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-count { font-size: 12px; color: #9ca3af; background: #f3f4f6; padding: 2px 8px; border-radius: 10px; }
+
+/* ── Footer ── */
+.site-footer {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
+  font-size: 12px;
+  color: #d1d5db;
+}
+
 /* ── Misc ── */
 .empty-msg { text-align: center; color: #9ca3af; font-size: 14px; padding: 28px 0; }
 .loading-msg { text-align: center; color: #9ca3af; font-size: 14px; padding: 40px 0; }

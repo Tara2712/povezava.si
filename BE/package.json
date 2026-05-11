@@ -9,7 +9,8 @@
     "test:setup": "node scripts/setupTestDB.js",
     "test:scrap": "node scripts/scrapAjpes.js",
     "test:extract": "node scripts/extractConnections.js",
-    "crawl": "node scripts/crawlNews.js"
+    "crawl": "node scripts/crawlNews.js",
+    "seed": "node scripts/seedRealData.js"
   },
   "dependencies": {
     "axios": "^1.16.0",
