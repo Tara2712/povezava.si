@@ -5,13 +5,20 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test:setup": "node scripts/setupTestDB.js",
+    "test:scrap": "node scripts/scrapAjpes.js",
+    "test:extract": "node scripts/extractConnections.js",
+    "crawl": "node scripts/crawlNews.js"
   },
   "dependencies": {
+    "axios": "^1.16.0",
+    "cheerio": "^1.2.0",
     "csv-parse": "^6.2.1",
     "dotenv": "^17.4.2",
     "express": "^4.18.2",
     "iconv-lite": "^0.7.2",
+    "openai": "^6.37.0",
     "pg": "^8.20.0"
   }
 }
