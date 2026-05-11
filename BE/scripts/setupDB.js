@@ -8,24 +8,28 @@ const pool = new Pool({
 
 async function setup() {
   try {
-    // Tabela za podjetja (OPSI podatki)
+    // podjetje - opsi podatki
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS podjetja (
+      CREATE TABLE IF NOT EXISTS podjetja ( 
         id SERIAL PRIMARY KEY,
-        maticna VARCHAR(10) UNIQUE NOT NULL,
-        naziv VARCHAR(500),
-        kratki_naziv VARCHAR(500),
-        naslov VARCHAR(500),
-        posta VARCHAR(100),
-        pravna_oblika VARCHAR(100),
+        maticna VARCHAR(15) UNIQUE NOT NULL,
+        popolno_ime VARCHAR(500),
+        hseid VARCHAR(100),
+        pravna_oblika VARCHAR(200),
+        registrski_organ VARCHAR(200),
+        ulica VARCHAR(200),
+        hisna_stevilka VARCHAR(20),
+        naselje VARCHAR(200),
+        postna_stevilka VARCHAR(10),
+        posta VARCHAR(200),
+        drzava VARCHAR(100),
         zadnja_posodobitev TIMESTAMP DEFAULT NOW()
       )
     `)
     console.log('Tabela podjetja ustvarjena!')
 
-    // Tabela za osebe (lastniki, direktorji)
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS osebe (
+      CREATE TABLE IF NOT EXISTS osebe ( 
         id SERIAL PRIMARY KEY,
         ime VARCHAR(200),
         priimek VARCHAR(200),
@@ -34,9 +38,8 @@ async function setup() {
     `)
     console.log('Tabela osebe ustvarjena!')
 
-    // Tabela za povezave med osebami in podjetji
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS povezave (
+      CREATE TABLE IF NOT EXISTS povezave ( 
         id SERIAL PRIMARY KEY,
         oseba_id INTEGER REFERENCES osebe(id),
         podjetje_id INTEGER REFERENCES podjetja(id),
@@ -49,7 +52,6 @@ async function setup() {
     `)
     console.log('Tabela povezave ustvarjena!')
 
-    // Log sinhronizacij
     await pool.query(`
       CREATE TABLE IF NOT EXISTS sync_log (
         id SERIAL PRIMARY KEY,

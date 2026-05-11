@@ -10,8 +10,14 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(express.static(path.join(__dirname, '../FE/dist')));
+
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Povezava.si backend deluje!' });
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../FE/dist', 'index.html'))
 });
 
 
