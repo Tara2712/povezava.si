@@ -7,11 +7,7 @@ import './App.css'
 function App() {
   const [status, setStatus] = useState('')
 
-  useEffect(() => {
-    fetch('http://localhost:3000')
-      .then(res => res.json())
-      .then(data => setStatus(data.message))
-  }, [])
+ const API_URL = 'https://povezava-si.onrender.com/'
 
   return (
     <div>
