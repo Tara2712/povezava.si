@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './App.css'
 
 function App() {
   const [status, setStatus] = useState('')
 
- const API_URL = 'https://povezava-si.onrender.com/'
+  const API_URL = 'https://povezava-si.onrender.com'
+
+  useEffect(() => {
+    fetch(`${API_URL}/`)
+      .then(res => res.json())
+      .then(data => setStatus(data.message))
+      .catch(err => setStatus('BE ne odgovarja'))
+  }, [])
 
   return (
     <div>
@@ -18,5 +22,3 @@ function App() {
 }
 
 export default App
-
-
