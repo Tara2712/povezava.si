@@ -14,10 +14,11 @@ function App() {
   }, [])
 
   return (
-    <div>
-      <h1>Povezava.si</h1>
-      <p>Backend status: {status}</p>
-    </div>
+    <ul>
+  {podjetja.map(p => (
+    <li key={p.maticna}>{p.popolno_ime} — {p.posta}</li>
+  ))}
+</ul>
   )
 }
 
