@@ -2,7 +2,7 @@
 
 body {
   margin: 0;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
   background: #fff;
   color: #111827;
   -webkit-font-smoothing: antialiased;

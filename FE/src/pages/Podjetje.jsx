@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 
-const API = 'http://localhost:3000'
+import { API } from '../api'
 
 function fmtDate(d) {
   if (!d) return null

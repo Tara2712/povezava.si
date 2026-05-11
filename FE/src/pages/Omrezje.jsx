@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 
-const API = 'http://localhost:3000'
+import { API } from '../api'
 
 const MEDIA_KEYWORDS = ['rtv', 'radio', 'tv', 'televizija', 'delo', 'večer', 'dnevnik', 'media', 'novice', 'zurnal', 'žurnal', 'siol', 'finance']
 
