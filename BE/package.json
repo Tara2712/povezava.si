@@ -5,8 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js",
-    "build": "cd ../FE && npm install && npm run build"
+    "dev": "node server.js"
   },
   "dependencies": {
     "csv-parse": "^6.2.1",
