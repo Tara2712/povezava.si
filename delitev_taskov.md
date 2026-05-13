@@ -28,6 +28,7 @@
 [X] vzpostavitev BE
 [X] Ui figma
 [X] ročni vnos, podjetji in povezav
+[x] ajpes scraper za osebe + scraper za osebe in aktivnost podjetij
 [] osnovna logika grafa
 [] 6 degrees of seperation 
     [] model za povezovanje med podjetji, osebami, regijami, mediji,...
