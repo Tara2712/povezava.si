@@ -3,7 +3,7 @@
 ## do konca 17.5.
 [] osnovni ui
     [] zemljevid slovenije - točke prikazujejo podjetja
-[] prikaz baze na fe
+[X] prikaz baze na fe
 [] urejanje in brisanje obstoječih zapisov
 [] README.md dopolnit
 
@@ -11,6 +11,17 @@
 [] filtriranje po panogi
 [] export podatkov
 ...
+
+[] zajemanje podatkov iz javno dostopnih virov
+    [] opsi
+    [] ajpes - lastniki
+    ...
+[] shranjevanje podatkov v bazo
+[] ui
+    [] responsive design za različne naprave
+[] vključite gemini ai za povezave
+[]verifikacija podatkov in samodejno zaznavanje podvojenih oseb 
+
 
 
 ## SANJA
