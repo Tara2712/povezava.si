@@ -1,8 +1,8 @@
-require('dotenv').config({ path: '.env.test' })
+require('dotenv').config()
 const { Pool } = require('pg')
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL_TEST,
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 })
 
