@@ -1,106 +1,89 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect, useMemo } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
-
 import { API } from '../api'
 
-const MEDIA_KEYWORDS = ['rtv', 'radio', 'tv', 'televizija', 'delo', 'večer', 'dnevnik', 'media', 'novice', 'zurnal', 'žurnal', 'siol', 'finance']
+const DEPTH_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+const RADII = [0, 130, 215, 295, 365, 425, 475]
 
-function isMedia(name) {
-  const n = (name || '').toLowerCase()
-  return MEDIA_KEYWORDS.some(k => n.includes(k))
-}
-
-function nodeType(name) {
-  if (isMedia(name)) return 'media'
-  return 'podjetje'
+function layoutNodes(nodes) {
+  const byDepth = {}
+  nodes.forEach(n => {
+    if (!byDepth[n.depth]) byDepth[n.depth] = []
+    byDepth[n.depth].push(n)
+  })
+  const cx = 420, cy = 320
+  const result = {}
+  Object.entries(byDepth).forEach(([depth, group]) => {
+    const r = RADII[parseInt(depth)] ?? 475
+    group.forEach((n, i) => {
+      const angle = (2 * Math.PI * i / group.length) - Math.PI / 2
+      result[n.key] = { ...n, x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) }
+    })
+  })
+  return result
 }
 
 function splitLabel(name, max = 11) {
   const words = (name || '').trim().split(/\s+/)
-  if (words.length === 1) return [words[0].slice(0, max), '']
+  if (words.length <= 1) return [(name || '').slice(0, max), '']
   const mid = Math.ceil(words.length / 2)
-  const l1 = words.slice(0, mid).join(' ')
-  const l2 = words.slice(mid).join(' ')
-  return [l1.slice(0, max), l2.slice(0, max)]
+  return [words.slice(0, mid).join(' ').slice(0, max), words.slice(mid).join(' ').slice(0, max)]
 }
 
-function GraphSVG({ centerName, nodes, onSelect, selected }) {
-  const W = 700, H = 430
-  const cx = W / 2, cy = H / 2
-
-  const visible = nodes
-  const R = visible.length <= 3 ? 155 : visible.length <= 6 ? 175 : 195
-
-  const positioned = visible.map((n, i) => ({
-    ...n,
-    x: cx + R * Math.cos((2 * Math.PI * i / visible.length) - Math.PI / 2),
-    y: cy + R * Math.sin((2 * Math.PI * i / visible.length) - Math.PI / 2),
-  }))
-
-  const centerLabel = splitLabel(centerName, 12)
+function GraphSVG({ center, positioned, edges, selected, onSelect }) {
+  const W = 840, H = 640
+  const centerKey = `o-${center.id}`
 
   return (
-    <svg className="graph-svg" viewBox={`0 0 ${W} ${H}`} style={{ height: 430 }}>
-      {/* Lines */}
-      {positioned.map((n, i) => (
-        <line key={i}
-          x1={cx} y1={cy} x2={n.x} y2={n.y}
-          stroke={n.direct ? '#3b82f6' : '#9ca3af'}
-          strokeDasharray={n.direct ? '' : '5 4'}
-          strokeWidth={n.direct ? 2 : 1.5}
-          opacity={0.7}
-        />
-      ))}
-
-      {/* Center person node */}
-      <circle cx={cx} cy={cy} r={46} fill="#fff" stroke="#2563eb" strokeWidth={2.5} />
-      <text x={cx} y={cy - (centerLabel[1] ? 7 : 0)} textAnchor="middle" fontSize={12} fontWeight="700" fill="#1e3a8a" fontFamily="system-ui">
-        {centerLabel[0]}
-      </text>
-      {centerLabel[1] && (
-        <text x={cx} y={cy + 10} textAnchor="middle" fontSize={12} fontWeight="700" fill="#1e3a8a" fontFamily="system-ui">
-          {centerLabel[1]}
-        </text>
-      )}
-
-      {/* Surrounding nodes */}
-      {positioned.map((n, i) => {
-        const [l1, l2] = splitLabel(n.name, 11)
-        const isSel = selected?.id === n.id
-        const isOrg = n.type === 'podjetje'
-        const isMediaNode = n.type === 'media'
-
-        const stroke = isSel
-          ? (isOrg ? '#059669' : isMediaNode ? '#dc2626' : '#2563eb')
-          : (isOrg ? '#10b981' : isMediaNode ? '#ef4444' : '#60a5fa')
-        const sw = isSel ? 2.5 : 1.5
-
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H }}>
+      {edges.map((e, i) => {
+        const a = positioned[e.from]
+        const b = positioned[e.to]
+        if (!a || !b) return null
+        const depth = Math.max(a.depth, b.depth)
+        const color = DEPTH_COLORS[Math.min(depth - 1, DEPTH_COLORS.length - 1)]
+        const direct = depth === 1
         return (
-          <g key={i} onClick={() => onSelect(isSel ? null : n)} style={{ cursor: 'pointer' }}>
-            {(isOrg || isMediaNode) ? (
-              <rect
-                x={n.x - 40} y={n.y - 22}
-                width={80} height={44}
-                rx={8}
-                fill="#fff"
-                stroke={stroke}
-                strokeWidth={sw}
-              />
-            ) : (
-              <circle cx={n.x} cy={n.y} r={32} fill="#fff" stroke={stroke} strokeWidth={sw} />
-            )}
-            <text x={n.x} y={n.y - (l2 ? 6 : 1)} textAnchor="middle" fontSize={10.5} fill="#374151" fontFamily="system-ui">
-              {l1}
-            </text>
-            {l2 && (
-              <text x={n.x} y={n.y + 9} textAnchor="middle" fontSize={10.5} fill="#374151" fontFamily="system-ui">
-                {l2}
-              </text>
-            )}
+          <line key={i}
+            x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+            stroke={color}
+            strokeWidth={direct ? 2 : 1}
+            strokeDasharray={direct ? '' : '5 4'}
+            opacity={direct ? 0.55 : 0.25}
+          />
+        )
+      })}
+
+      {Object.values(positioned).map(n => {
+        if (n.key === centerKey) return null
+        const [l1, l2] = splitLabel(n.name)
+        const isSel = selected?.key === n.key
+        const color = DEPTH_COLORS[Math.min(n.depth - 1, DEPTH_COLORS.length - 1)]
+        const isOrg = n.type === 'podjetje'
+        return (
+          <g key={n.key} onClick={() => onSelect(isSel ? null : n)} style={{ cursor: 'pointer' }}>
+            {isOrg
+              ? <rect x={n.x - 38} y={n.y - 20} width={76} height={40} rx={7} fill="#fff" stroke={color} strokeWidth={isSel ? 2.5 : 1.5} />
+              : <circle cx={n.x} cy={n.y} r={28} fill="#fff" stroke={color} strokeWidth={isSel ? 2.5 : 1.5} />
+            }
+            <text x={n.x} y={n.y - (l2 ? 5 : 0)} textAnchor="middle" fontSize={9.5} fill="#374151" fontFamily="system-ui, sans-serif">{l1}</text>
+            {l2 && <text x={n.x} y={n.y + 8} textAnchor="middle" fontSize={9.5} fill="#374151" fontFamily="system-ui, sans-serif">{l2}</text>}
           </g>
         )
       })}
+
+      {positioned[centerKey] && (() => {
+        const n = positioned[centerKey]
+        const [l1, l2] = splitLabel(center.name, 13)
+        return (
+          <g>
+            <circle cx={n.x} cy={n.y} r={50} fill="#fff" stroke="#2563eb" strokeWidth={3} />
+            <text x={n.x} y={n.y - (l2 ? 7 : 0)} textAnchor="middle" fontSize={12} fontWeight="700" fill="#1e3a8a" fontFamily="system-ui, sans-serif">{l1}</text>
+            {l2 && <text x={n.x} y={n.y + 9} textAnchor="middle" fontSize={12} fontWeight="700" fill="#1e3a8a" fontFamily="system-ui, sans-serif">{l2}</text>}
+          </g>
+        )
+      })()}
     </svg>
   )
 }
@@ -108,95 +91,86 @@ function GraphSVG({ centerName, nodes, onSelect, selected }) {
 export default function Omrezje() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [personData, setPersonData] = useState(null)
-  const [nodes, setNodes] = useState([])
+  const [data, setData]       = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [depth, setDepth]     = useState(3)
   const [selected, setSelected] = useState(null)
-  const [filter, setFilter] = useState({ podjetje: true, oseba: true, media: true })
 
   useEffect(() => {
-    async function load() {
-      const person = await fetch(`${API}/osebe/${id}`).then(r => r.json())
-      setPersonData(person)
-
-      const direct = (person.povezave || []).map(p => ({
-        id: `p-${p.podjetje_id}`,
-        type: nodeType(p.popolno_ime),
-        name: p.popolno_ime || '?',
-        vloga: p.vloga,
-        vir: p.vir,
-        direct: true,
-      }))
-      setNodes(direct)
-    }
-    load().catch(console.error)
-  }, [id])
-
-  if (!personData) return <Layout activeTab="omrezje"><p className="loading-msg">Nalagam omrežje...</p></Layout>
-
-  const centerName = `${personData.ime} ${personData.priimek}`
-  const visible = nodes.filter(n => filter[n.type])
-
-  function toggleFilter(type) {
-    setFilter(f => ({ ...f, [type]: !f[type] }))
+    setLoading(true)
     setSelected(null)
-  }
+    fetch(`${API}/omrezje/${id}?depth=${depth}`)
+      .then(r => r.json())
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [id, depth])
+
+  const positioned = useMemo(() => {
+    if (!data?.nodes) return {}
+    return layoutNodes(data.nodes)
+  }, [data])
+
+  if (loading) return <Layout><p className="loading-msg">Nalagam omrežje...</p></Layout>
+  if (!data?.center) return <Layout><p className="error-msg">Napaka pri nalaganju.</p></Layout>
 
   return (
     <Layout activeTab="omrezje">
       <button className="back-btn" onClick={() => navigate(`/oseba/${id}`)}>← Profil</button>
 
+      <div className="graph-header">
+        <div>
+          <h2 className="graph-title">{data.center.name}</h2>
+          <p className="graph-subtitle">{data.nodes.length} vozlišč · {data.edges.length} povezav</p>
+        </div>
+        <div className="depth-control">
+          <span className="depth-label">Stopnje ločenosti:</span>
+          {[1, 2, 3, 4, 5, 6].map(d => (
+            <button key={d}
+              className={`depth-btn${depth === d ? ' active' : ''}`}
+              onClick={() => setDepth(d)}
+            >{d}</button>
+          ))}
+        </div>
+      </div>
+
       <div className="graph-card">
         <GraphSVG
-          centerName={centerName}
-          nodes={visible}
-          onSelect={setSelected}
+          center={data.center}
+          positioned={positioned}
+          edges={data.edges}
           selected={selected}
+          onSelect={setSelected}
         />
 
         {selected && (
           <div className="graph-tooltip">
             <strong>{selected.name}</strong>
-            {selected.vloga && <span> · {selected.vloga}</span>}
-            {selected.vir?.startsWith('http') && (
-              <a href={selected.vir} target="_blank" rel="noopener">Vir ↗</a>
-            )}
+            <span> · {selected.depth}. stopnja</span>
+            <button className="graph-tooltip-link" onClick={() =>
+              navigate(selected.type === 'oseba' ? `/oseba/${selected.id}` : `/podjetje/${selected.id}`)
+            }>
+              Odpri profil →
+            </button>
           </div>
         )}
 
         <div className="graph-legend">
-          <span className="legend-item">
-            <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#fff" stroke="#60a5fa" strokeWidth="1.5"/></svg>
-            Oseba
+          {DEPTH_COLORS.slice(0, depth).map((color, i) => (
+            <span key={i} className="legend-item">
+              <svg width="10" height="10"><circle cx="5" cy="5" r="4" fill={color} /></svg>
+              {i + 1}. st.
+            </span>
+          ))}
+          <span className="legend-item" style={{ marginLeft: 'auto' }}>
+            <svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="#6b7280" strokeWidth="2"/></svg>
+            direktna
           </span>
           <span className="legend-item">
-            <svg width="16" height="12"><rect x="1" y="1" width="14" height="10" rx="3" fill="#fff" stroke="#10b981" strokeWidth="1.5"/></svg>
-            Organizacija
-          </span>
-          <span className="legend-item">
-            <svg width="16" height="12"><rect x="1" y="1" width="14" height="10" rx="3" fill="#fff" stroke="#ef4444" strokeWidth="1.5"/></svg>
-            Medij
-          </span>
-          <span className="legend-item">
-            <svg width="30" height="10"><line x1="0" y1="5" x2="30" y2="5" stroke="#3b82f6" strokeWidth="2"/></svg>
-            Direktna vez
-          </span>
-          <span className="legend-item">
-            <svg width="30" height="10"><line x1="0" y1="5" x2="30" y2="5" stroke="#9ca3af" strokeWidth="1.5" strokeDasharray="5 4"/></svg>
-            Posredna vez
+            <svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="#9ca3af" strokeWidth="1.5" strokeDasharray="4 3"/></svg>
+            posredna
           </span>
         </div>
-      </div>
-
-      <div className="graph-filters">
-        <button className={`filter-btn${filter.podjetje ? ' active-org' : ''}`} onClick={() => toggleFilter('podjetje')}>
-          □ Organizacija
-        </button>
-        <button className={`filter-btn${filter.oseba ? ' active-oseba' : ''}`} onClick={() => toggleFilter('oseba')}>
-          ○ Oseba
-        </button>
-        <button className={`filter-btn${filter.media ? ' active-media' : ''}`} onClick={() => toggleFilter('media')}>
-          □ Medij
-        </button>
       </div>
     </Layout>
   )

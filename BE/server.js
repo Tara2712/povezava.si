@@ -24,9 +24,28 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Povezava.si backend deluje!' })
 })
 
-// GET /osebe — seznam vseh oseb
+// GET /stats — skupno število oseb, podjetij, povezav
+app.get('/stats', async (req, res) => {
+  try {
+    const [o, p, pov] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM osebe'),
+      pool.query('SELECT COUNT(*) FROM podjetja'),
+      pool.query('SELECT COUNT(*) FROM povezave'),
+    ])
+    res.json({
+      osebe: parseInt(o.rows[0].count),
+      podjetja: parseInt(p.rows[0].count),
+      povezave: parseInt(pov.rows[0].count),
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /osebe — seznam oseb (limit opcijski)
 app.get('/osebe', async (req, res) => {
   try {
+    const limit = req.query.limit ? parseInt(req.query.limit) : null
     const result = await pool.query(`
       SELECT o.id, o.ime, o.priimek,
         COUNT(p.id) AS stevilo_povezav
@@ -34,6 +53,7 @@ app.get('/osebe', async (req, res) => {
       LEFT JOIN povezave p ON p.oseba_id = o.id
       GROUP BY o.id
       ORDER BY stevilo_povezav DESC
+      ${limit ? `LIMIT ${limit}` : ''}
     `)
     res.json(result.rows)
   } catch (err) {
@@ -50,7 +70,7 @@ app.get('/osebe/:id', async (req, res) => {
     if (oseba.rows.length === 0) return res.status(404).json({ error: 'Oseba ni najdena' })
 
     const povezave = await pool.query(`
-      SELECT p.vloga, p.vir, p.datum_od, p.datum_do,
+      SELECT p.vloga, p.datum_od, p.datum_do,
         d.id AS podjetje_id, d.popolno_ime, d.pravna_oblika
       FROM povezave p
       JOIN podjetja d ON d.id = p.podjetje_id
@@ -64,9 +84,10 @@ app.get('/osebe/:id', async (req, res) => {
   }
 })
 
-// GET /podjetja — seznam vseh podjetij
+// GET /podjetja — seznam podjetij (limit opcijski)
 app.get('/podjetja', async (req, res) => {
   try {
+    const limit = req.query.limit ? parseInt(req.query.limit) : 50
     const result = await pool.query(`
       SELECT d.id, d.maticna, d.popolno_ime, d.pravna_oblika, d.posta,
         COUNT(p.id) AS stevilo_povezav
@@ -74,7 +95,8 @@ app.get('/podjetja', async (req, res) => {
       LEFT JOIN povezave p ON p.podjetje_id = d.id
       GROUP BY d.id
       ORDER BY stevilo_povezav DESC
-    `)
+      LIMIT $1
+    `, [limit])
     res.json(result.rows)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -108,7 +130,7 @@ app.get('/podjetja/:id', async (req, res) => {
 app.get('/povezave', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT p.id, p.vloga, p.vir,
+      SELECT p.id, p.vloga,
         o.ime, o.priimek,
         d.popolno_ime AS podjetje
       FROM povezave p
@@ -117,6 +139,80 @@ app.get('/povezave', async (req, res) => {
       ORDER BY p.id DESC
     `)
     res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /omrezje/:id — BFS do 6 stopenj ločenosti
+app.get('/omrezje/:id', async (req, res) => {
+  const { id } = req.params
+  const maxDepth = Math.min(parseInt(req.query.depth) || 3, 6)
+  const maxNodes = 80
+
+  try {
+    const startResult = await pool.query(`SELECT id, ime, priimek FROM osebe WHERE id = $1`, [id])
+    if (startResult.rows.length === 0) return res.status(404).json({ error: 'Oseba ni najdena' })
+
+    const sp = startResult.rows[0]
+    const nodes = new Map()
+    const edges = []
+
+    nodes.set(`o-${id}`, { key: `o-${id}`, id: parseInt(id), type: 'oseba', name: `${sp.ime} ${sp.priimek}`, depth: 0, isCenter: true })
+
+    let frontierOsebe = [parseInt(id)]
+    let frontierPodjetja = []
+    const visitedO = new Set([parseInt(id)])
+    const visitedP = new Set()
+
+    for (let d = 0; d < maxDepth && nodes.size < maxNodes; d++) {
+      if (d % 2 === 0) {
+        // oseba → podjetja
+        if (!frontierOsebe.length) break
+        const r = await pool.query(`
+          SELECT p.oseba_id, p.podjetje_id, d.popolno_ime, p.vloga
+          FROM povezave p JOIN podjetja d ON d.id = p.podjetje_id
+          WHERE p.oseba_id = ANY($1)
+        `, [frontierOsebe])
+
+        const next = []
+        for (const row of r.rows) {
+          if (nodes.size >= maxNodes) break
+          const key = `d-${row.podjetje_id}`
+          if (!nodes.has(key)) nodes.set(key, { key, id: row.podjetje_id, type: 'podjetje', name: row.popolno_ime, depth: d + 1 })
+          const eKey = `${`o-${row.oseba_id}`}__${key}`
+          if (!edges.find(e => e.key === eKey)) edges.push({ key: eKey, from: `o-${row.oseba_id}`, to: key, vloga: row.vloga })
+          if (!visitedP.has(row.podjetje_id)) { visitedP.add(row.podjetje_id); next.push(row.podjetje_id) }
+        }
+        frontierPodjetja = next
+      } else {
+        // podjetja → osebe
+        if (!frontierPodjetja.length) break
+        const r = await pool.query(`
+          SELECT p.podjetje_id, p.oseba_id, o.ime, o.priimek, p.vloga
+          FROM povezave p JOIN osebe o ON o.id = p.oseba_id
+          WHERE p.podjetje_id = ANY($1)
+        `, [frontierPodjetja])
+
+        const next = []
+        for (const row of r.rows) {
+          if (nodes.size >= maxNodes) break
+          const key = `o-${row.oseba_id}`
+          if (!nodes.has(key)) nodes.set(key, { key, id: row.oseba_id, type: 'oseba', name: `${row.ime} ${row.priimek}`, depth: d + 1 })
+          const eKey = `d-${row.podjetje_id}__${key}`
+          if (!edges.find(e => e.key === eKey)) edges.push({ key: eKey, from: `d-${row.podjetje_id}`, to: key, vloga: row.vloga })
+          if (!visitedO.has(row.oseba_id)) { visitedO.add(row.oseba_id); next.push(row.oseba_id) }
+        }
+        frontierOsebe = next
+      }
+    }
+
+    res.json({
+      center: { id: parseInt(id), name: `${sp.ime} ${sp.priimek}` },
+      nodes: [...nodes.values()],
+      edges: edges.map(({ key, ...e }) => e),
+      maxDepth
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
