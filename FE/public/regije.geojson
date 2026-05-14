@@ -1,0 +1,40 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature", "id": "primorska",
+      "properties": { "ime": "Primorska" },
+      "geometry": { "type": "Polygon", "coordinates": [[[13.38,45.42],[13.90,45.42],[13.90,45.82],[14.05,46.12],[13.65,46.20],[13.50,46.52],[13.38,46.50],[13.38,45.42]]] }
+    },
+    {
+      "type": "Feature", "id": "notranjska",
+      "properties": { "ime": "Notranjska" },
+      "geometry": { "type": "Polygon", "coordinates": [[[13.90,45.42],[14.58,45.42],[14.65,45.82],[14.05,46.12],[13.90,45.82],[13.90,45.42]]] }
+    },
+    {
+      "type": "Feature", "id": "dolenjska",
+      "properties": { "ime": "Dolenjska" },
+      "geometry": { "type": "Polygon", "coordinates": [[[14.05,46.20],[14.78,46.20],[14.78,45.95],[15.68,45.95],[15.68,45.42],[14.58,45.42],[14.65,45.82],[14.05,46.12],[14.05,46.20]]] }
+    },
+    {
+      "type": "Feature", "id": "gorenjska",
+      "properties": { "ime": "Gorenjska" },
+      "geometry": { "type": "Polygon", "coordinates": [[[13.65,46.20],[14.78,46.20],[14.78,46.40],[14.68,46.68],[14.20,46.80],[13.85,46.88],[13.50,46.52],[13.65,46.20]]] }
+    },
+    {
+      "type": "Feature", "id": "koroska",
+      "properties": { "ime": "Koroška" },
+      "geometry": { "type": "Polygon", "coordinates": [[[14.78,46.40],[15.40,46.40],[15.55,46.62],[15.10,46.78],[14.68,46.68],[14.78,46.40]]] }
+    },
+    {
+      "type": "Feature", "id": "stajerska",
+      "properties": { "ime": "Štajerska" },
+      "geometry": { "type": "Polygon", "coordinates": [[[14.78,45.95],[16.05,45.95],[16.05,46.52],[15.55,46.62],[15.40,46.40],[14.78,46.40],[14.78,45.95]]] }
+    },
+    {
+      "type": "Feature", "id": "prekmurje",
+      "properties": { "ime": "Prekmurje" },
+      "geometry": { "type": "Polygon", "coordinates": [[[16.05,46.52],[16.62,46.52],[16.62,46.88],[16.05,46.88],[16.05,46.52]]] }
+    }
+  ]
+}
