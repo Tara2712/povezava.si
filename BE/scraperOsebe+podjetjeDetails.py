@@ -145,61 +145,123 @@ async def search_company(page, maticna):
         return False
 
 
-# Scraper - dinamičen (vse sekcije z podatki)
+# scraper
 async def scrape_osebe(page, maticna):
 
     try:
 
-        results = []
+        company_data = {
+            "Matična številka podjetja": maticna,
+            "Telefon": "",
+            "Email": "",
+            "Datum vpisa": "",
+            "Status aktivnosti": "",
+            "Velikost": "",
+            "Glavna dejavnost": "",
+            "Druge dejavnosti": "",
+            "Zastopniki": "",
+            "Ustanovitelji": "",
+            "Lastniki": "",
+            "Prokurist": "",
+            "Družbeniki": "",
+            "Direktor": "",
+            "Uprava": "",
+            "Člani nadzornega sveta": "",
+            "Nosilec dejavnosti": "",
+            "Partnerji": ""
+        }
 
-        sections = page.locator("div.row")
+        rows = page.locator("div.row")
 
-        count = await sections.count()
+        count = await rows.count()
 
         for i in range(count):
 
-            row = sections.nth(i)
+            row = rows.nth(i)
 
             try:
 
-                label_el = row.locator("div.col-sm-5.text-thin")
+                label_el = row.locator(
+                    "div.col-sm-5.text-thin"
+                )
 
                 if await label_el.count() == 0:
                     continue
 
-                vloga = (await label_el.inner_text()).strip()
+                label = (
+                    await label_el.first.inner_text()
+                ).strip()
 
-                if not vloga:
+                if not label:
                     continue
 
-                value_el = row.locator("div.col-sm-7, div.col-sm-12")
+                value_el = row.locator(
+                    "div.col-sm-7"
+                )
 
                 if await value_el.count() == 0:
                     continue
 
-                text = await value_el.inner_text()
+                text = (
+                    await value_el.first.inner_text()
+                ).strip()
 
-                # razbijemo po vrsticah
-                osebe = [
+                if not text:
+                    continue
+
+                cleaned = " | ".join([
                     t.strip()
                     for t in text.split("\n")
                     if t.strip()
-                ]
+                ])
 
-                for o in osebe:
+                print(f"   + {label}: {cleaned}")
 
-                    print(f"   + {vloga}: {o}")
+                if label == "Telefon":
 
-                    results.append({
-                        "Matična številka podjetja": maticna,
-                        "Oseba / Podjetje": o,
-                        "Vloga": vloga
-                    })
+                    if company_data["Telefon"]:
+                        company_data["Telefon"] += " | " + cleaned
+                    else:
+                        company_data["Telefon"] = cleaned
+
+                elif label == "Elektronski naslov":
+
+                    company_data["Email"] = cleaned
+
+                elif label in [
+                    "Datum vpisa",
+                    "Status aktivnosti",
+                    "Velikost",
+                    "Glavna dejavnost"
+                ]:
+
+                    company_data[label] = cleaned
+
+                elif label == "Druge dejavnosti":
+
+                    if company_data["Druge dejavnosti"]:
+                        company_data["Druge dejavnosti"] += " | " + cleaned
+                    else:
+                        company_data["Druge dejavnosti"] = cleaned
+
+                # Vse vloge
+                else:
+
+                    if label not in company_data:
+
+                        company_data[label] = cleaned
+
+                    else:
+
+                        if company_data[label]:
+                            company_data[label] += " | " + cleaned
+                        else:
+                            company_data[label] = cleaned
 
             except:
                 continue
 
-        return results
+        return [company_data]
 
     except Exception as e:
 
