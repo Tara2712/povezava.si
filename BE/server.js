@@ -76,7 +76,7 @@ app.get('/akademiki', async (req, res) => {
       LEFT JOIN povezave p ON p.oseba_id = o.id
       WHERE o.tip = 'akademik'
       GROUP BY o.id
-      ORDER BY o.priimek
+      ORDER BY (o.fotografija_url IS NOT NULL) DESC, (o.opis IS NOT NULL) DESC, o.priimek
       LIMIT $1
     `, [limit])
     res.json(result.rows)
