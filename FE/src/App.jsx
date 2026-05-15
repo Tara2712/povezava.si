@@ -10,8 +10,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Mapa />} />
-        <Route path="/iskanje" element={<Iskanje />} />
+        <Route path="/" element={<Iskanje />} />
+        <Route path="/mapa" element={<Mapa />} />
         <Route path="/oseba/:id" element={<Oseba />} />
         <Route path="/podjetje/:id" element={<Podjetje />} />
         <Route path="/omrezje/:id" element={<Omrezje />} />
