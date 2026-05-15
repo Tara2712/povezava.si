@@ -1,6 +1,12 @@
 require('dotenv').config()
 const express = require('express')
 const { Pool } = require('pg')
+const podjetjaRoutes = require('./routes/podjetja')
+const osebeRoutes = require('./routes/osebe')
+const omrezjeRoutes = require('./routes/omrezje')
+const povezaveRoutes = require('./routes/povezave')
+const searchRoutes = require('./routes/search')
+const statsRoutes = require('./routes/stats')
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -24,23 +30,12 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Povezava.si backend deluje!' })
 })
 
-// GET /stats — skupno število oseb, podjetij, povezav
-app.get('/stats', async (req, res) => {
-  try {
-    const [o, p, pov] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM osebe'),
-      pool.query('SELECT COUNT(*) FROM podjetja'),
-      pool.query('SELECT COUNT(*) FROM povezave'),
-    ])
-    res.json({
-      osebe: parseInt(o.rows[0].count),
-      podjetja: parseInt(p.rows[0].count),
-      povezave: parseInt(pov.rows[0].count),
-    })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
+app.use('/api/podjetja', podjetjaRoutes)
+app.use('/api/osebe', osebeRoutes)
+app.use('/api/omrezje', omrezjeRoutes)
+app.use('/api/povezave', povezaveRoutes)
+app.use('/api/search', searchRoutes)
+app.use('/api/stats', statsRoutes)
 
 // GET /osebe — seznam oseb (limit, tip opcijski)
 app.get('/osebe', async (req, res) => {
@@ -324,3 +319,5 @@ app.get('/search', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server teče na portu ${PORT}`)
 })
+
+module.exports = app
