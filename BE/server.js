@@ -42,19 +42,47 @@ app.get('/stats', async (req, res) => {
   }
 })
 
-// GET /osebe — seznam oseb (limit opcijski)
+// GET /osebe — seznam oseb (limit, tip opcijski)
 app.get('/osebe', async (req, res) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit) : null
+    const tip   = ['poslovnez', 'akademik'].includes(req.query.tip) ? req.query.tip : null
+
+    const params = []
+    let where = ''
+    if (tip) { params.push(tip); where = `WHERE o.tip = $${params.length}` }
+    if (limit) params.push(limit)
+
     const result = await pool.query(`
-      SELECT o.id, o.ime, o.priimek,
+      SELECT o.id, o.ime, o.priimek, o.tip, o.fotografija_url, o.institucija, o.naziv,
         COUNT(p.id) AS stevilo_povezav
       FROM osebe o
       LEFT JOIN povezave p ON p.oseba_id = o.id
+      ${where}
       GROUP BY o.id
       ORDER BY stevilo_povezav DESC
-      ${limit ? `LIMIT ${limit}` : ''}
-    `)
+      ${limit ? `LIMIT $${params.length}` : ''}
+    `, params)
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /akademiki — seznam akademikov za domačo stran
+app.get('/akademiki', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5
+    const result = await pool.query(`
+      SELECT o.id, o.ime, o.priimek, o.naziv, o.institucija, o.fotografija_url,
+        COUNT(p.id) AS stevilo_povezav
+      FROM osebe o
+      LEFT JOIN povezave p ON p.oseba_id = o.id
+      WHERE o.tip = 'akademik'
+      GROUP BY o.id
+      ORDER BY o.priimek
+      LIMIT $1
+    `, [limit])
     res.json(result.rows)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -216,6 +244,50 @@ app.get('/omrezje/:id', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
+})
+
+// GET /clanki — zadnji članki z omembami oseb
+app.get('/clanki', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 8
+    const result = await pool.query(`
+      SELECT c.id, c.naslov, c.url, c.vir, c.datum, c.povzetek,
+        JSON_AGG(JSON_BUILD_OBJECT('id', o.id, 'ime', o.ime, 'priimek', o.priimek))
+          FILTER (WHERE o.id IS NOT NULL) AS osebe
+      FROM clanki c
+      LEFT JOIN clanki_osebe co ON co.clanek_id = c.id
+      LEFT JOIN osebe o ON o.id = co.oseba_id
+      GROUP BY c.id
+      ORDER BY c.datum DESC
+      LIMIT $1
+    `, [limit])
+    res.json(result.rows)
+  } catch (err) { res.status(500).json({ error: err.message }) }
+})
+
+// GET /osebe/:id/clanki — članki kjer se pojavi ta oseba
+app.get('/osebe/:id/clanki', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT c.id, c.naslov, c.url, c.vir, c.datum
+      FROM clanki c
+      JOIN clanki_osebe co ON co.clanek_id = c.id
+      WHERE co.oseba_id = $1
+      ORDER BY c.datum DESC
+      LIMIT 10
+    `, [req.params.id])
+    res.json(result.rows)
+  } catch (err) { res.status(500).json({ error: err.message }) }
+})
+
+// POST /scrape — sproži scraping novic (za GitHub Actions cron)
+app.post('/scrape', async (req, res) => {
+  res.json({ status: 'started' })
+  const { execFile } = require('child_process')
+  execFile('node', ['scripts/scrapeNews.js'], { cwd: __dirname }, (err) => {
+    if (err) console.error('Scrape napaka:', err.message)
+    else console.log('Scrape končan.')
+  })
 })
 
 // GET /search?q=janez — iskanje oseb in podjetij
