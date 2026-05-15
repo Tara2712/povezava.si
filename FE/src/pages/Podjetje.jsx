@@ -30,7 +30,7 @@ export default function Podjetje() {
 
   return (
     <Layout>
-      <button className="back-btn" onClick={() => navigate(-1)}>← Nazaj</button>
+      <button className="back-btn" onClick={() => navigate('/')}>← Nazaj na iskanje</button>
 
       <div className="profile-card">
         <div className="profile-top">
