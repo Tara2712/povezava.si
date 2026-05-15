@@ -28,12 +28,9 @@ function buildVisData(rawNodes, rawEdges, filter, colorMode) {
     const isClose = n.depth <= 1
     const s = getNodeStyle(n, colorMode)
     const name = n.name || ''
-    // Napis samo za center in 1. stopnjo — globlje vozlišče dobi prazen napis (hover tooltip)
     const label = isCenter
       ? name
-      : isClose
-        ? (name.length > 18 ? name.slice(0, 17) + '…' : name)
-        : ''
+      : (name.length > 18 ? name.slice(0, 17) + '…' : name)
     return {
       id: n.key,
       label,
