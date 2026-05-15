@@ -1,5 +1,5 @@
 # povezava.si
-<img src="image.png" alt="povezava.si" width="50%">
+<img src="image.png" alt="povezava.si" height="30%">
 Sanja Muršič, Chantal Pia Ribič, Tara Sedovšek
 
 ## 🔗Vizija
@@ -8,12 +8,23 @@ Povezava.si je spletna platforma za pregled in vizualizacijo povezav med slovens
 
 ## Podatki za delo
 
+Podatki, uporabljeni pri razvoju projekta, niso vključeni v repozitorij kot datoteke, saj izvirajo iz javno dostopnih virov. Uporabili smo podatke, dostopne na straneh, kot so OPSI, AJPES, ERAR, RT Slovenija in drugi javni viri.
+
+za potrebe projekta smo zbrale, uredile in shranile v namensko podatkovno bazo, ki jo uporablja aplikacija.Zaradi preglednosti in velikosti podatkovnih datotek te niso naložene neposredno v Git repozitorij.
+
 ## Tehhnološki nabor
+
+- Frontend: 
+   -React (VITE v19.2.6)
+   -JavaScript
+   -Css
+- Backend:
+   -Node.js (v24.15.0)
+   -Express
 
 ## Namestitev in zagon projekta
 1. _Predpogoji_
    Za namestitev je nujno potrebno, da je na računalnik nameščeno naslednje:
-   - [Docker]
    - [Git](https://git-scm.com/downloads)
      - Preveri namestitev: `git --version`
    - Node.js in npm <br>
@@ -25,4 +36,9 @@ Povezava.si je spletna platforma za pregled in vizualizacijo povezav med slovens
    - namestitev: https://git-scm.com/downloads
    - preverjanje namestitve z ukazom: `git --version`
      
-3. _Zagon aplikacije z Dockerjem_
+2. _Kloniranje repozitorija z ukazi_
+   - `https://github.com/Tara2712/povezava.si.git`
+   - `cd povezava.si`
+
+3. _Zagon aplikacije_
+
