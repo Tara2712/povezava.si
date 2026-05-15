@@ -38,7 +38,7 @@ export default function Oseba() {
 
       <div className="profile-card">
         <div className="profile-top">
-          <Avatar name={fullName} size="lg" />
+          <Avatar name={fullName} size="lg" foto={data.fotografija_url} />
           <div className="profile-info">
             <h1>{fullName}</h1>
             {first && <p className="prof-sub">{first.vloga} · {first.popolno_ime}</p>}
