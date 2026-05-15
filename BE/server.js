@@ -70,6 +70,7 @@ app.get('/akademiki', async (req, res) => {
     const limit = parseInt(req.query.limit) || 5
     const result = await pool.query(`
       SELECT o.id, o.ime, o.priimek, o.naziv, o.institucija, o.fotografija_url,
+        o.opis, o.podrocja, o.profil_url,
         COUNT(p.id) AS stevilo_povezav
       FROM osebe o
       LEFT JOIN povezave p ON p.oseba_id = o.id

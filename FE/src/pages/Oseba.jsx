@@ -74,6 +74,29 @@ export default function Oseba() {
             </div>
           </div>
         )}
+
+        {data.tip === 'akademik' && (data.opis || data.podrocja) && (
+          <div className="akademik-info">
+            {data.opis && (
+              <div className="akademik-vloga">{data.opis}</div>
+            )}
+            {data.podrocja && (
+              <div className="akademik-podrocja">
+                <div className="akademik-podrocja-label">Področja raziskovanja</div>
+                <div className="akademik-podrocja-tags">
+                  {data.podrocja.split(' · ').map((p, i) => (
+                    <span key={i} className="akademik-tag">{p.trim()}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {data.profil_url && (
+              <a className="akademik-profil-link" href={data.profil_url} target="_blank" rel="noopener">
+                Odpri profil na ii.feri.um.si ↗
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       <p className="section-title">Povezave ({data.povezave?.length || 0})</p>
