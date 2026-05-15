@@ -79,11 +79,13 @@ function CompanyCard({ podjetje, onClick }) {
 
 function AkademikCard({ oseba, onClick }) {
   const name = `${oseba.ime} ${oseba.priimek}`
+  const firstArea = oseba.podrocja?.split(' · ')[0]?.trim()
   return (
-    <button className="home-person-card" onClick={onClick}>
+    <button className="home-person-card home-akademik-card" onClick={onClick}>
       <Avatar name={name} size="lg" foto={oseba.fotografija_url} />
       <span className="home-card-name">{name}</span>
       {oseba.naziv && <span className="home-card-naziv">{oseba.naziv}</span>}
+      {firstArea && <span className="home-card-area">{firstArea}</span>}
     </button>
   )
 }
