@@ -76,7 +76,21 @@ app.get('/akademiki', async (req, res) => {
       LEFT JOIN povezave p ON p.oseba_id = o.id
       WHERE o.tip = 'akademik'
       GROUP BY o.id
-      ORDER BY (o.fotografija_url IS NOT NULL) DESC, (o.opis IS NOT NULL) DESC, o.priimek
+      ORDER BY
+        CASE
+          WHEN o.opis ILIKE '%Predstojnik inštituta%' THEN 1
+          WHEN o.opis ILIKE '%Namestnik predstojnika%' THEN 2
+          WHEN o.opis ILIKE '%Redni profesor%' THEN 3
+          WHEN o.opis ILIKE '%Izredni profesor%' THEN 4
+          WHEN o.opis ILIKE '%Docent%' THEN 5
+          WHEN o.opis ILIKE '%Višji predavatelj%' OR o.opis ILIKE '%Predavatelj%' THEN 6
+          WHEN o.opis ILIKE '%Asistent%' THEN 7
+          WHEN o.opis ILIKE '%Mladi raziskovalec%' THEN 8
+          WHEN o.opis ILIKE '%Tehnični sodelavec%' THEN 9
+          WHEN o.fotografija_url IS NOT NULL THEN 10
+          ELSE 11
+        END,
+        o.priimek
       LIMIT $1
     `, [limit])
     res.json(result.rows)

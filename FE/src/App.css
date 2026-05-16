@@ -943,6 +943,23 @@
   border-radius: 20px;
   padding: 3px 10px;
 }
+.akademik-skupina {
+  margin-top: 12px;
+}
+.akademik-skupina-label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #7c3aed;
+  margin-bottom: 10px;
+  padding: 2px 10px;
+  background: #f5f3ff;
+  border-radius: 20px;
+}
+.home-akademik-vodstvo .avatar { box-shadow: 0 0 0 3px #7c3aed40; }
+
 .home-card-area {
   font-size: 10px;
   color: #6b7280;

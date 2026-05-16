@@ -77,15 +77,40 @@ function CompanyCard({ podjetje, onClick }) {
   )
 }
 
+function akademikSkupina(opis) {
+  if (!opis) return 'ostalo'
+  const o = opis.toLowerCase()
+  if (o.includes('predstojnik') || o.includes('namestnik')) return 'vodstvo'
+  if (o.includes('redni profesor') || o.includes('izredni profesor') || o.includes('docent') || o.includes('predavatelj')) return 'profesor'
+  if (o.includes('asistent') || o.includes('mladi raziskovalec')) return 'asistent'
+  return 'ostalo'
+}
+
+function akademikVloga(opis) {
+  if (!opis) return null
+  const o = opis.toLowerCase()
+  if (o.includes('predstojnik inštituta')) return 'Predstojnik'
+  if (o.includes('namestnik predstojnika')) return 'Nam. predstojnika'
+  if (o.includes('redni profesor')) return 'Red. profesor'
+  if (o.includes('izredni profesor')) return 'Izr. profesor'
+  if (o.includes('docent')) return 'Docent'
+  if (o.includes('višji predavatelj')) return 'Višji predavatelj'
+  if (o.includes('predavatelj')) return 'Predavatelj'
+  if (o.includes('mladi raziskovalec')) return 'Mladi razisk.'
+  if (o.includes('asistent')) return 'Asistent'
+  if (o.includes('tehnični sodelavec')) return 'Teh. sodelavec'
+  return null
+}
+
 function AkademikCard({ oseba, onClick }) {
   const name = `${oseba.ime} ${oseba.priimek}`
-  const firstArea = oseba.podrocja?.split(' · ')[0]?.trim()
+  const vloga = akademikVloga(oseba.opis)
+  const skupina = akademikSkupina(oseba.opis)
   return (
-    <button className="home-person-card home-akademik-card" onClick={onClick}>
+    <button className={`home-person-card home-akademik-card home-akademik-${skupina}`} onClick={onClick}>
       <Avatar name={name} size="lg" foto={oseba.fotografija_url} />
       <span className="home-card-name">{name}</span>
-      {oseba.naziv && <span className="home-card-naziv">{oseba.naziv}</span>}
-      {firstArea && <span className="home-card-area">{firstArea}</span>}
+      {vloga && <span className="home-card-naziv">{vloga}</span>}
     </button>
   )
 }
@@ -107,7 +132,7 @@ export default function Home() {
       fetch(`${API}/osebe?limit=5&tip=poslovnez`).then(r => r.json()),
       fetch(`${API}/podjetja?limit=5`).then(r => r.json()),
     ]).then(([osebe, podjetja]) => setTop({ osebe, podjetja })).catch(() => {})
-    fetch(`${API}/akademiki?limit=6`).then(r => r.json()).then(setAkademiki).catch(() => {})
+    fetch(`${API}/akademiki?limit=12`).then(r => r.json()).then(setAkademiki).catch(() => {})
     fetch(`${API}/clanki?limit=6`).then(r => r.json()).then(setClanki).catch(() => {})
   }, [])
 
@@ -199,19 +224,43 @@ export default function Home() {
               </div>
             </section>
 
-            {akademiki.length > 0 && (
-              <section className="home-section">
-                <div className="home-section-head">
-                  <h2 className="home-section-title">Akademiki — UM FERI</h2>
-                  <span className="home-section-badge">Inštitut za informatiko</span>
-                </div>
-                <div className="home-cards-row">
-                  {akademiki.map(o => (
-                    <AkademikCard key={o.id} oseba={o} onClick={() => navigate(`/oseba/${o.id}`)} />
-                  ))}
-                </div>
-              </section>
-            )}
+            {akademiki.length > 0 && (() => {
+              const vodstvo   = akademiki.filter(o => akademikSkupina(o.opis) === 'vodstvo')
+              const profesorji = akademiki.filter(o => akademikSkupina(o.opis) === 'profesor')
+              const asistenti = akademiki.filter(o => akademikSkupina(o.opis) === 'asistent')
+              return (
+                <section className="home-section">
+                  <div className="home-section-head">
+                    <h2 className="home-section-title">Akademiki — UM FERI</h2>
+                    <span className="home-section-badge">Inštitut za informatiko</span>
+                  </div>
+                  {vodstvo.length > 0 && (
+                    <div className="akademik-skupina">
+                      <span className="akademik-skupina-label">Vodstvo</span>
+                      <div className="home-cards-row">
+                        {vodstvo.map(o => <AkademikCard key={o.id} oseba={o} onClick={() => navigate(`/oseba/${o.id}`)} />)}
+                      </div>
+                    </div>
+                  )}
+                  {profesorji.length > 0 && (
+                    <div className="akademik-skupina">
+                      <span className="akademik-skupina-label">Profesorji & predavatelji</span>
+                      <div className="home-cards-row">
+                        {profesorji.map(o => <AkademikCard key={o.id} oseba={o} onClick={() => navigate(`/oseba/${o.id}`)} />)}
+                      </div>
+                    </div>
+                  )}
+                  {asistenti.length > 0 && (
+                    <div className="akademik-skupina">
+                      <span className="akademik-skupina-label">Asistenti</span>
+                      <div className="home-cards-row">
+                        {asistenti.map(o => <AkademikCard key={o.id} oseba={o} onClick={() => navigate(`/oseba/${o.id}`)} />)}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )
+            })()}
 
             <section className="home-section">
               <div className="home-section-head">
