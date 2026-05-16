@@ -36,6 +36,7 @@ app.use('/api/omrezje', omrezjeRoutes)
 app.use('/api/povezave', povezaveRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/stats', statsRoutes)
+app.use('/stats', statsRoutes)
 
 // GET /osebe — seznam oseb (limit, tip opcijski)
 app.get('/osebe', async (req, res) => {
