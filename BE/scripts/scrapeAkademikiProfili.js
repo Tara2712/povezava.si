@@ -97,6 +97,37 @@ async function scrapiProfil(page, url) {
   }
 }
 
+// ── Zagotovi UM FERI v podjetja in vrni njen id ──────────────────────────────
+
+async function zagotoviFeri() {
+  const res = await pool.query(`
+    INSERT INTO podjetja (popolno_ime, pravna_oblika, posta, maticna)
+    VALUES (
+      'Univerza v Mariboru, Fakulteta za elektrotehniko, računalništvo in informatiko',
+      'Javni zavod', 'Maribor', '5089638000'
+    )
+    ON CONFLICT (maticna) DO UPDATE SET popolno_ime = EXCLUDED.popolno_ime
+    RETURNING id
+  `)
+  return res.rows[0].id
+}
+
+function izlociVlogo(opis) {
+  if (!opis) return 'Zaposleni'
+  const o = opis.toLowerCase()
+  if (o.includes('predstojnik inštituta')) return 'Predstojnik inštituta'
+  if (o.includes('namestnik predstojnika')) return 'Namestnik predstojnika'
+  if (o.includes('redni profesor')) return 'Redni profesor'
+  if (o.includes('izredni profesor')) return 'Izredni profesor'
+  if (o.includes('docent')) return 'Docent'
+  if (o.includes('višji predavatelj')) return 'Višji predavatelj'
+  if (o.includes('predavatelj')) return 'Predavatelj'
+  if (o.includes('mladi raziskovalec')) return 'Mladi raziskovalec'
+  if (o.includes('asistent')) return 'Asistent'
+  if (o.includes('tehnični sodelavec')) return 'Tehnični sodelavec'
+  return 'Zaposleni'
+}
+
 // ── Glavni program ────────────────────────────────────────────────────────────
 
 async function main() {
@@ -112,6 +143,13 @@ async function main() {
   const page = await makePage(browser)
   const profili = await pridobi_profile_url(page)
   console.log(`Najdenih ${profili.length} profilov\n`)
+
+  // Zagotovi UM FERI organizacijo
+  let feriId = null
+  if (!DRY) {
+    feriId = await zagotoviFeri()
+    console.log(`UM FERI id=${feriId}\n`)
+  }
 
   let posodobljenih = 0
 
@@ -130,13 +168,30 @@ async function main() {
     if (!opis && !podrocja) console.log(`  (ni podatkov)`)
 
     if (!DRY) {
-      await pool.query(`
+      // Posodobi profil osebe
+      const upd = await pool.query(`
         UPDATE osebe SET
           opis       = COALESCE($1, opis),
           podrocja   = COALESCE($2, podrocja),
           profil_url = COALESCE($3, profil_url)
         WHERE LOWER(ime) = LOWER($4) AND LOWER(priimek) = LOWER($5)
+        RETURNING id, opis
       `, [opis, podrocja, prof.url || null, ime, priimek])
+
+      if (upd.rows.length && feriId) {
+        const osebaId = upd.rows[0].id
+        const aktualniOpis = upd.rows[0].opis
+        const vloga = izlociVlogo(aktualniOpis)
+
+        // Upsert povezave → UM FERI
+        await pool.query(`
+          INSERT INTO povezave (oseba_id, podjetje_id, vloga, vir)
+          VALUES ($1, $2, $3, 'ii.feri.um.si')
+          ON CONFLICT (oseba_id, podjetje_id) DO UPDATE SET vloga = EXCLUDED.vloga
+        `, [osebaId, feriId, vloga])
+        console.log(`  → Povezava z UM FERI: ${vloga}`)
+      }
+
       posodobljenih++
     }
   }
