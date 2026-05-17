@@ -7,6 +7,7 @@ import Podjetje from './pages/Podjetje'
 import Omrezje from './pages/Omrezje'
 import Lobisti from './pages/Lobisti'
 import Ovadeni from './pages/Ovadeni'
+import Mediji from './pages/Mediji'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/omrezje/:id" element={<Omrezje />} />
         <Route path="/lobisti" element={<Lobisti />} />
         <Route path="/ovadeni" element={<Ovadeni />} />
+        <Route path="/mediji" element={<Mediji />} />
       </Routes>
     </BrowserRouter>
   )
