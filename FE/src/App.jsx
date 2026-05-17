@@ -8,7 +8,6 @@ import Omrezje from './pages/Omrezje'
 import Lobisti from './pages/Lobisti'
 import Ovadeni from './pages/Ovadeni'
 import Mediji from './pages/Mediji'
-import Pot from './pages/Pot'
 import Asistent from './pages/Asistent'
 
 export default function App() {
@@ -23,7 +22,6 @@ export default function App() {
         <Route path="/lobisti" element={<Lobisti />} />
         <Route path="/ovadeni" element={<Ovadeni />} />
         <Route path="/mediji" element={<Mediji />} />
-        <Route path="/pot" element={<Pot />} />
         <Route path="/asistent" element={<Asistent />} />
       </Routes>
     </BrowserRouter>
