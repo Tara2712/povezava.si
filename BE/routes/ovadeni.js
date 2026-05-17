@@ -98,7 +98,8 @@ router.get('/', async (req, res) => {
       params.push(`%${q}%`)
       conditions.push(`(LOWER(ime || ' ' || priimek) LIKE LOWER($${params.length})
                      OR LOWER(COALESCE(zadeva,'')) LIKE LOWER($${params.length})
-                     OR LOWER(COALESCE(sodisce,'')) LIKE LOWER($${params.length}))`)
+                     OR LOWER(COALESCE(sodisce,'')) LIKE LOWER($${params.length})
+                     OR LOWER(COALESCE(vir,'')) LIKE LOWER($${params.length}))`)
     }
     if (status) {
       params.push(status)

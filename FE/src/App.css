@@ -1187,6 +1187,16 @@
   text-decoration: none;
 }
 .register-vir-link:hover { text-decoration: underline; }
+.register-card-vir-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+}
+.ovadeni-count-note {
+  font-size: 13px;
+  color: #94a3b8;
+  padding: 0 0 8px 2px;
+}
 .ovadeni-initials {
   width: 40px;
   height: 40px;
