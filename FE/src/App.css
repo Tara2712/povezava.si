@@ -137,6 +137,20 @@
   color: #a5b4fc;
 }
 .sidebar-link-disabled { color: #334155 !important; cursor: default; }
+.sidebar-link-mediji {
+  background: rgba(239,68,68,0.1);
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 8px;
+}
+.sidebar-link-mediji:hover:not(.active) {
+  background: rgba(239,68,68,0.18) !important;
+  color: #fca5a5 !important;
+}
+.sidebar-link-mediji.active {
+  background: rgba(239,68,68,0.25) !important;
+  color: #f87171 !important;
+}
 .sidebar-link-label { font-size: 13.5px; }
 
 .sidebar-footer {
@@ -1017,6 +1031,102 @@
   margin-top: 4px;
 }
 .akademik-profil-link:hover { text-decoration: underline; }
+
+/* ── Mediji stran ───────────────────────────────────────────────────────── */
+.home-section-vse {
+  font-size: 12.5px;
+  color: #7c3aed;
+  text-decoration: none;
+  font-weight: 500;
+}
+.home-section-vse:hover { text-decoration: underline; }
+
+.mediji-page { padding: 28px 32px; max-width: 860px; }
+.mediji-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.mediji-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mediji-desc { font-size: 13px; color: #64748b; margin: 0; }
+.mediji-count {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mediji-list { display: flex; flex-direction: column; gap: 2px; }
+.mediji-row {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 1.5px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+.mediji-row:hover {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+.mediji-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.mediji-row-datum { font-size: 11.5px; color: #94a3b8; }
+.mediji-row-naslov {
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+.mediji-row-osebe { display: flex; flex-wrap: wrap; gap: 6px; }
+.mediji-oseba-tag {
+  font-size: 11.5px;
+  color: #0d9488;
+  background: #f0fdfa;
+  border-radius: 20px;
+  padding: 2px 8px;
+  text-decoration: none;
+}
+.mediji-oseba-tag:hover { background: #ccfbf1; }
+.mediji-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+.mediji-page-btn {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  color: #475569;
+  transition: all 0.15s;
+}
+.mediji-page-btn:hover:not(:disabled) { border-color: #7c3aed; color: #7c3aed; }
+.mediji-page-btn:disabled { opacity: 0.4; cursor: default; }
+.mediji-page-info { font-size: 13px; color: #64748b; }
 
 /* ── Register strani (Lobisti / Ovadeni) ───────────────────────────────── */
 .register-page {
