@@ -7,6 +7,8 @@ const omrezjeRoutes = require('./routes/omrezje')
 const povezaveRoutes = require('./routes/povezave')
 const searchRoutes = require('./routes/search')
 const statsRoutes = require('./routes/stats')
+const lobistiRoutes = require('./routes/lobisti')
+const ovadeniRoutes = require('./routes/ovadeni')
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -37,6 +39,10 @@ app.use('/api/povezave', povezaveRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/stats', statsRoutes)
 app.use('/stats', statsRoutes)
+app.use('/api/lobisti', lobistiRoutes)
+app.use('/lobisti', lobistiRoutes)
+app.use('/api/ovadeni', ovadeniRoutes)
+app.use('/ovadeni', ovadeniRoutes)
 
 // GET /osebe — seznam oseb (limit, tip opcijski)
 app.get('/osebe', async (req, res) => {
