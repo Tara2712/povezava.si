@@ -30,8 +30,8 @@
 [X] ročni vnos, podjetji in povezav
 [x] ajpes scraper za osebe + scraper za osebe in aktivnost podjetij
 [] osnovna logika grafa
-[] 6 degrees of seperation 
-    [] model za povezovanje med podjetji, osebami, regijami, mediji,...
+[X] 6 degrees of seperation 
+    [X] model za povezovanje med podjetji, osebami, regijami, mediji,...
 
 
 ## CHANTAL
@@ -46,5 +46,9 @@
     [X] opsi podatki o podjetjih
 [X] vzpostavitev BE na render
 [X] vzpostavitev FE na vercel
-[] 6 degrees of seperation 
-    [] model za povezovanje med podjetji, osebami, regijami, mediji,...
+[X] 6 degrees of seperation 
+    [X] model za povezovanje med podjetji, osebami, regijami, mediji,...
+[X] povezave 
+    [X] oseba - oseba
+    [X] podjetje - oseba
+    [X] podjetje - podjetje
