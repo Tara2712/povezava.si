@@ -307,17 +307,20 @@ app.post('/scrape', async (req, res) => {
   })
 })
 
-// GET /search?q=janez — iskanje oseb in podjetij
+// GET /search?q=janez&tip=poslovnez|akademik — iskanje oseb in podjetij
 app.get('/search', async (req, res) => {
   try {
     const q = `%${req.query.q || ''}%`
+    const tip = ['poslovnez', 'akademik'].includes(req.query.tip) ? req.query.tip : null
+
+    const tipWhere = tip ? `AND o.tip = '${tip}'` : ''
 
     const osebe = await pool.query(`
-      SELECT o.id, o.ime, o.priimek, 'oseba' AS tip,
+      SELECT o.id, o.ime, o.priimek, o.tip, o.fotografija_url, 'oseba' AS vrsta,
         COUNT(p.id) AS stevilo_povezav
       FROM osebe o
       LEFT JOIN povezave p ON p.oseba_id = o.id
-      WHERE LOWER(o.ime || ' ' || o.priimek) LIKE LOWER($1)
+      WHERE LOWER(o.ime || ' ' || o.priimek) LIKE LOWER($1) ${tipWhere}
       GROUP BY o.id
       LIMIT 10
     `, [q])

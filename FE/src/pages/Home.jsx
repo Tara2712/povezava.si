@@ -117,6 +117,7 @@ function AkademikCard({ oseba, onClick }) {
 
 export default function Home() {
   const [query, setQuery]       = useState('')
+  const [filter, setFilter]     = useState('')
   const [results, setResults]   = useState([])
   const [loading, setLoading]   = useState(false)
   const [stats, setStats]       = useState({ osebe: 0, podjetja: 0, povezave: 0 })
@@ -139,12 +140,14 @@ export default function Home() {
   useEffect(() => {
     if (!dq.trim()) { setResults([]); return }
     setLoading(true)
-    fetch(`${API}/search?q=${encodeURIComponent(dq)}`)
+    const params = new URLSearchParams({ q: dq })
+    if (filter) params.set('tip', filter)
+    fetch(`${API}/search?${params}`)
       .then(r => r.json())
       .then(setResults)
       .catch(() => setResults([]))
       .finally(() => setLoading(false))
-  }, [dq])
+  }, [dq, filter])
 
   function go(item) {
     if (item.tip === 'oseba') navigate(`/oseba/${item.id}`)
@@ -174,6 +177,15 @@ export default function Home() {
               autoFocus
             />
           </div>
+          <div className="search-filters">
+            {[['', 'Vsi'], ['poslovnez', 'Poslovneži'], ['akademik', 'Akademiki']].map(([v, l]) => (
+              <button
+                key={v || 'vse'}
+                className={`search-filter-pill${filter === v ? ' active' : ''}`}
+                onClick={() => setFilter(v)}
+              >{l}</button>
+            ))}
+          </div>
         </div>
 
         {isSearching ? (
@@ -185,11 +197,15 @@ export default function Home() {
             </p>
             <div className="result-list">
               {results.map(item => (
-                <button key={`${item.tip}-${item.id}`} className="result-card" onClick={() => go(item)}>
-                  <Avatar name={itemName(item)} />
+                <button key={`${item.vrsta || item.tip}-${item.id}`} className="result-card" onClick={() => go(item)}>
+                  <Avatar name={itemName(item)} foto={item.fotografija_url} />
                   <div className="card-body">
                     <div className="card-name">{itemName(item)}</div>
-                    <div className="card-sub">{item.tip === 'oseba' ? 'Oseba' : 'Organizacija'}</div>
+                    <div className="card-sub">
+                      {item.vrsta === 'oseba'
+                        ? (item.tip === 'akademik' ? 'Akademik' : 'Poslovnež')
+                        : 'Organizacija'}
+                    </div>
                   </div>
                   <span className="card-count">{item.stevilo_povezav} {item.stevilo_povezav == 1 ? 'povezava' : 'povezav'}</span>
                 </button>
