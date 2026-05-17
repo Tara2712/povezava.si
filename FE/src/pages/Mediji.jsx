@@ -43,38 +43,35 @@ function useDebounce(val, ms) {
   return d
 }
 
-const PAGE = 20
+const LETA_PRIHODNOST = [2027, 2028, 2029]
 
 export default function Mediji() {
-  const [query, setQuery]   = useState('')
-  const [offset, setOffset] = useState(0)
-  const [data, setData]     = useState({ skupaj: 0, clanki: [] })
+  const [query, setQuery]     = useState('')
+  const [data, setData]       = useState({ skupaj: 0, clanki: [] })
   const [loading, setLoading] = useState(true)
   const dq = useDebounce(query, 300)
   const topRef = useRef(null)
 
   useEffect(() => {
-    setOffset(0)
-  }, [dq])
-
-  useEffect(() => {
     setLoading(true)
-    const params = new URLSearchParams({ limit: PAGE, offset })
+    const params = new URLSearchParams({ limit: 200 })
     if (dq) params.set('q', dq)
     fetch(`${API}/clanki?${params}`)
       .then(r => r.json())
       .then(d => setData({ skupaj: d.skupaj ?? 0, clanki: d.clanki ?? [] }))
       .catch(() => setData({ skupaj: 0, clanki: [] }))
       .finally(() => setLoading(false))
-  }, [dq, offset])
+  }, [dq])
 
-  function changePage(newOffset) {
-    setOffset(newOffset)
-    topRef.current?.scrollIntoView({ behavior: 'smooth' })
+  // Razvrsti po letih
+  const poLetih = {}
+  for (const c of data.clanki) {
+    const leto = c.datum ? new Date(c.datum).getFullYear() : 'Neznan datum'
+    if (!poLetih[leto]) poLetih[leto] = []
+    poLetih[leto].push(c)
   }
-
-  const totalPages = Math.ceil(data.skupaj / PAGE)
-  const currentPage = Math.floor(offset / PAGE) + 1
+  const letoSorted = Object.keys(poLetih).sort((a, b) => b - a)
+  const tekoceLetο = new Date().getFullYear()
 
   return (
     <Layout>
@@ -89,7 +86,7 @@ export default function Mediji() {
           <span className="mediji-count">{data.skupaj} objav</span>
         </div>
 
-        <div className="register-search-wrap" style={{ marginBottom: 20 }}>
+        <div className="register-search-wrap" style={{ marginBottom: 28 }}>
           <svg className="search-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
@@ -104,33 +101,48 @@ export default function Mediji() {
 
         {loading ? (
           <p className="loading-msg">Nalagam...</p>
-        ) : data.clanki.length === 0 ? (
-          <div className="register-empty">
-            <div className="register-empty-icon">📰</div>
-            <p>{query ? `Ni rezultatov za "${query}"` : 'Ni objav.'}</p>
-          </div>
         ) : (
-          <>
-            <div className="mediji-list">
-              {data.clanki.map(c => <ClanekRow key={c.id} clanek={c} />)}
-            </div>
+          <div className="mediji-timeline">
 
-            {totalPages > 1 && (
-              <div className="mediji-pagination">
-                <button
-                  className="mediji-page-btn"
-                  disabled={offset === 0}
-                  onClick={() => changePage(Math.max(0, offset - PAGE))}
-                >← Prejšnja</button>
-                <span className="mediji-page-info">{currentPage} / {totalPages}</span>
-                <button
-                  className="mediji-page-btn"
-                  disabled={offset + PAGE >= data.skupaj}
-                  onClick={() => changePage(offset + PAGE)}
-                >Naslednja →</button>
+            {/* Dejanska leta z objavami */}
+            {letoSorted.map(leto => {
+              const jeTekoce = parseInt(leto) === tekoceLetο
+              const jePreteklost = parseInt(leto) < tekoceLetο
+              return (
+                <div key={leto} className={`mediji-leto-skupina ${jeTekoce ? 'tekoce' : jePreteklost ? 'preteklost' : ''}`}>
+                  <div className="mediji-leto-header">
+                    <span className="mediji-leto-badge">{leto}</span>
+                    <span className="mediji-leto-count">{poLetih[leto].length} objav</span>
+                  </div>
+                  <div className="mediji-leto-list">
+                    {poLetih[leto].map(c => <ClanekRow key={c.id} clanek={c} />)}
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Prihodnja leta — sivа placeholderji */}
+            {!dq && LETA_PRIHODNOST.filter(l => l > tekoceLetο).map(leto => (
+              <div key={leto} className="mediji-leto-skupina prihodnost">
+                <div className="mediji-leto-header">
+                  <span className="mediji-leto-badge">{leto}</span>
+                  <span className="mediji-leto-count mediji-kmalu">— objave bodo dodane</span>
+                </div>
+                <div className="mediji-leto-placeholder">
+                  <div className="mediji-placeholder-bar" style={{ width: '65%' }} />
+                  <div className="mediji-placeholder-bar" style={{ width: '80%' }} />
+                  <div className="mediji-placeholder-bar" style={{ width: '50%' }} />
+                </div>
+              </div>
+            ))}
+
+            {data.clanki.length === 0 && (
+              <div className="register-empty">
+                <div className="register-empty-icon">📰</div>
+                <p>{dq ? `Ni rezultatov za "${dq}"` : 'Ni objav.'}</p>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </Layout>

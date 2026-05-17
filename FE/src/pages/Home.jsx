@@ -123,7 +123,7 @@ export default function Home() {
   const [stats, setStats]       = useState({ osebe: 0, podjetja: 0, povezave: 0 })
   const [top, setTop]           = useState({ osebe: [], podjetja: [] })
   const [akademiki, setAkademiki] = useState([])
-  const [clanki, setClanki]     = useState([])
+  // clanki so na /mediji strani
   const navigate = useNavigate()
   const dq = useDebounce(query, 280)
 
@@ -134,7 +134,7 @@ export default function Home() {
       fetch(`${API}/podjetja?limit=5`).then(r => r.json()),
     ]).then(([osebe, podjetja]) => setTop({ osebe, podjetja })).catch(() => {})
     fetch(`${API}/akademiki?limit=12`).then(r => r.json()).then(setAkademiki).catch(() => {})
-    fetch(`${API}/clanki?limit=4`).then(r => r.json()).then(d => setClanki(d.clanki ?? d)).catch(() => {})
+    // clanki se prikazujejo samo na /mediji
   }, [])
 
   useEffect(() => {
@@ -289,17 +289,6 @@ export default function Home() {
               </div>
             </section>
 
-            {clanki.length > 0 && (
-              <section className="home-section">
-                <div className="home-section-head">
-                  <h2 className="home-section-title">Aktualno v medijih</h2>
-                  <Link to="/mediji" className="home-section-vse">Vse objave →</Link>
-                </div>
-                <div className="clanki-grid">
-                  {clanki.map(c => <ClanekCard key={c.id} clanek={c} />)}
-                </div>
-              </section>
-            )}
 
             <footer className="site-footer">
               <span>Podatki: AJPES PRS, javni viri</span>

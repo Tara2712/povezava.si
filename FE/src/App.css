@@ -1131,28 +1131,59 @@
   text-decoration: none;
 }
 .mediji-oseba-tag:hover { background: #ccfbf1; }
-.mediji-pagination {
+/* Časovnica po letih */
+.mediji-timeline { display: flex; flex-direction: column; gap: 32px; }
+
+.mediji-leto-skupina { position: relative; }
+.mediji-leto-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #f1f5f9;
+  gap: 10px;
+  margin-bottom: 12px;
 }
-.mediji-page-btn {
-  padding: 7px 16px;
-  border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
-  background: #fff;
-  font-size: 13px;
-  cursor: pointer;
+.mediji-leto-badge {
+  font-size: 15px;
+  font-weight: 800;
+  padding: 3px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+}
+.mediji-leto-count { font-size: 12px; color: #94a3b8; }
+
+/* Tekoče leto — obarvano */
+.mediji-leto-skupina.tekoce .mediji-leto-badge {
+  background: #7c3aed;
+  color: #fff;
+}
+.mediji-leto-skupina.tekoce .mediji-leto-list { border-left: 3px solid #7c3aed30; padding-left: 12px; }
+
+/* Pretekla leta */
+.mediji-leto-skupina.preteklost .mediji-leto-badge {
+  background: #f1f5f9;
   color: #475569;
-  transition: all 0.15s;
 }
-.mediji-page-btn:hover:not(:disabled) { border-color: #7c3aed; color: #7c3aed; }
-.mediji-page-btn:disabled { opacity: 0.4; cursor: default; }
-.mediji-page-info { font-size: 13px; color: #64748b; }
+.mediji-leto-skupina.preteklost .mediji-leto-list { border-left: 3px solid #e2e8f0; padding-left: 12px; }
+
+/* Prihodnja leta — siva */
+.mediji-leto-skupina.prihodnost { opacity: 0.35; }
+.mediji-leto-skupina.prihodnost .mediji-leto-badge {
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1.5px dashed #cbd5e1;
+}
+.mediji-leto-placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 3px dashed #e2e8f0;
+}
+.mediji-placeholder-bar {
+  height: 14px;
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.mediji-kmalu { color: #cbd5e1; font-style: italic; }
 
 /* ── Register strani (Lobisti / Ovadeni) ───────────────────────────────── */
 .register-page {
