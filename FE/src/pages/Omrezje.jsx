@@ -134,7 +134,7 @@ export default function Omrezje() {
   const networkRef = useRef(null)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [depth, setDepth] = useState(2)
+  const [depth, setDepth] = useState(1)
   const [filter, setFilter] = useState('vse')
   const [colorMode, setColorMode] = useState('stopnja')
   const [selected, setSelected] = useState(null)

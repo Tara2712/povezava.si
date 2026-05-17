@@ -19,7 +19,7 @@ function podjetjeSubtype(ime, parentId) {
 // GET /omrezje/:id — BFS do 6 stopenj ločenosti
 router.get('/:id', async (req, res) => {
   const { id } = req.params
-  const maxDepth = Math.min(parseInt(req.query.depth) || 3, 6)
+  const maxDepth = Math.min(parseInt(req.query.depth) || 2, 6)
   const maxNodes = 80
 
   try {
@@ -88,6 +88,7 @@ router.get('/:id', async (req, res) => {
     }
 
     // Dodaj hierarhične robove: parent → otrok (UM FERI → laboratoriji/instituti)
+    // Instituti se dodajo vedno, ne glede na maxNodes limit
     const companyIds = [...nodes.values()].filter(n => n.type === 'podjetje').map(n => n.id)
     if (companyIds.length) {
       const childrenRes = await pool.query(`
@@ -95,7 +96,6 @@ router.get('/:id', async (req, res) => {
       `, [companyIds])
 
       for (const ch of childrenRes.rows) {
-        if (nodes.size >= maxNodes) break
         const childKey = `d-${ch.id}`
         const parentKey = `d-${ch.parent_podjetje_id}`
         if (!nodes.has(childKey)) {
