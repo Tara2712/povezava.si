@@ -1,0 +1,23 @@
+name: Avtomatsko posodabljanje podatkov
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # vsak dan ob 2:00 UTC (4:00 CEST)
+  workflow_dispatch:      # ročni zagon iz GitHub UI
+
+jobs:
+  scrape-novice:
+    name: Posodobi novice
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sproži scraping novic na Render
+        run: |
+          curl -f -X POST "${{ secrets.BACKEND_URL }}/scrape" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SCRAPE_SECRET }}" \
+            --max-time 30
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+
+      - name: Potrdi uspešen zagon
+        run: echo "Scraping sproži ob $(date '+%Y-%m-%d %H:%M:%S UTC')"
