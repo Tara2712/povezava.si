@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const { Pool } = require('pg')
+const axios = require('axios')
 const podjetjaRoutes = require('./routes/podjetja')
 const osebeRoutes = require('./routes/osebe')
 const omrezjeRoutes = require('./routes/omrezje')
@@ -323,6 +324,10 @@ app.get('/osebe/:id/clanki', async (req, res) => {
 
 // POST /scrape — sproži scraping novic (za GitHub Actions cron)
 app.post('/scrape', async (req, res) => {
+  const secret = process.env.SCRAPE_SECRET
+  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
   res.json({ status: 'started' })
   const { execFile } = require('child_process')
   execFile('node', ['scripts/scrapeNews.js'], { cwd: __dirname }, (err) => {
@@ -330,6 +335,189 @@ app.post('/scrape', async (req, res) => {
     else console.log('Scrape končan.')
   })
 })
+
+// GET /pot?od=:id&do=:id — BFS najkrajša pot med dvema osebama
+app.get('/pot', async (req, res) => {
+  const fromId = parseInt(req.query.od)
+  const toId   = parseInt(req.query.do)
+  if (!fromId || !toId) return res.status(400).json({ error: 'Manjkata parametra od in do' })
+
+  try {
+    const [startRes, endRes] = await Promise.all([
+      pool.query('SELECT id, ime, priimek FROM osebe WHERE id = $1', [fromId]),
+      pool.query('SELECT id, ime, priimek FROM osebe WHERE id = $1', [toId])
+    ])
+    if (!startRes.rows.length) return res.status(404).json({ error: 'Začetna oseba ni najdena' })
+    if (!endRes.rows.length)   return res.status(404).json({ error: 'Končna oseba ni najdena' })
+
+    const sp = startRes.rows[0]
+    const ep = endRes.rows[0]
+
+    if (fromId === toId) return res.json({
+      path: [{ type: 'oseba', id: fromId, name: `${sp.ime} ${sp.priimek}` }], stopnje: 0
+    })
+
+    const visitedO = new Map()
+    const visitedP = new Map()
+    visitedO.set(fromId, [{ type: 'oseba', id: fromId, name: `${sp.ime} ${sp.priimek}` }])
+
+    let frontierOsebe    = [fromId]
+    let frontierPodjetja = []
+
+    for (let depth = 0; depth < 12; depth++) {
+      if (depth % 2 === 0) {
+        if (!frontierOsebe.length) break
+        const r = await pool.query(`
+          SELECT p.oseba_id, p.podjetje_id, d.popolno_ime, p.vloga
+          FROM povezave p JOIN podjetja d ON d.id = p.podjetje_id
+          WHERE p.oseba_id = ANY($1::int[])
+        `, [frontierOsebe])
+
+        const next = []
+        for (const row of r.rows) {
+          if (visitedP.has(row.podjetje_id)) continue
+          const newPath = [...visitedO.get(row.oseba_id),
+            { type: 'podjetje', id: row.podjetje_id, name: row.popolno_ime, vloga: row.vloga }]
+          visitedP.set(row.podjetje_id, newPath)
+          next.push(row.podjetje_id)
+        }
+        frontierPodjetja = next
+      } else {
+        if (!frontierPodjetja.length) break
+        const r = await pool.query(`
+          SELECT p.podjetje_id, p.oseba_id, o.ime, o.priimek, p.vloga
+          FROM povezave p JOIN osebe o ON o.id = p.oseba_id
+          WHERE p.podjetje_id = ANY($1::int[])
+        `, [frontierPodjetja])
+
+        const next = []
+        for (const row of r.rows) {
+          if (visitedO.has(row.oseba_id)) continue
+          const newPath = [...visitedP.get(row.podjetje_id),
+            { type: 'oseba', id: row.oseba_id, name: `${row.ime} ${row.priimek}`, vloga: row.vloga }]
+
+          if (row.oseba_id === toId) {
+            return res.json({ path: newPath, stopnje: Math.floor((newPath.length - 1) / 2) })
+          }
+          visitedO.set(row.oseba_id, newPath)
+          next.push(row.oseba_id)
+        }
+        frontierOsebe = next
+      }
+    }
+
+    res.json({ path: null, stopnje: null,
+      sporocilo: `Pot med ${sp.ime} ${sp.priimek} in ${ep.ime} ${ep.priimek} ni bila najdena v 6 stopnjah ločenosti.` })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /ai/vprasaj — AI asistent (Ollama + rule-based fallback)
+app.post('/ai/vprasaj', async (req, res) => {
+  const { vprasanje } = req.body
+  if (!vprasanje?.trim()) return res.status(400).json({ error: 'Manjka vprašanje' })
+
+  try {
+    const context = await gatherContext(vprasanje, pool)
+
+    let ollamaOdgovor = null
+    const ollamaUrl   = process.env.OLLAMA_URL || 'http://localhost:11434'
+    const ollamaModel = process.env.OLLAMA_MODEL || 'mistral'
+    try {
+      const resp = await axios.post(`${ollamaUrl}/api/generate`, {
+        model: ollamaModel,
+        prompt: `Si asistent za Povezava.si, slovensko bazo poslovnih in akademskih mrež.\n\nPodatki iz baze:\n${JSON.stringify(context.podatki)}\n\nSistematski odgovor: "${context.fallbackOdgovor}"\n\nUporabnikovo vprašanje: "${vprasanje}"\n\nOdgovori v slovenščini, kratko (1-3 stavke). Ne ponovi besede za besedo — razširi ali izboljšaj odgovor.`,
+        stream: false
+      }, { timeout: 12000 })
+      ollamaOdgovor = resp.data?.response?.trim() || null
+    } catch (_) {}
+
+    res.json({
+      odgovor: ollamaOdgovor || context.fallbackOdgovor,
+      podatki: context.podatki,
+      vir: ollamaOdgovor ? 'ollama' : 'sistem'
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+async function gatherContext(q, pool) {
+  const ql = q.toLowerCase()
+
+  if (ql.includes('koliko') || ql.includes('statistik') || ql.includes('baza') || ql.includes('bazi')) {
+    const r = await pool.query(`
+      SELECT (SELECT COUNT(*) FROM osebe) AS osebe,
+             (SELECT COUNT(*) FROM podjetja) AS podjetja,
+             (SELECT COUNT(*) FROM povezave) AS povezave`)
+    const s = r.rows[0]
+    return {
+      podatki: { tip: 'stats', osebe: +s.osebe, podjetja: +s.podjetja, povezave: +s.povezave },
+      fallbackOdgovor: `V bazi je ${s.osebe} oseb, ${s.podjetja} podjetij in ${s.povezave} poznanih poslovnih povezav.`
+    }
+  }
+
+  const nameMatch = q.match(/[A-ZŠŽČĆĐ][a-zšžčćđ]+ [A-ZŠŽČĆĐ][a-zšžčćđ]+/)
+  if (nameMatch) {
+    const parts = nameMatch[0].split(' ')
+    const r = await pool.query(`
+      SELECT o.id, o.ime, o.priimek, o.tip, o.opis, o.institucija,
+        JSON_AGG(JSON_BUILD_OBJECT('podjetje', d.popolno_ime, 'vloga', p.vloga, 'podjetje_id', d.id))
+          FILTER (WHERE d.id IS NOT NULL) AS povezave
+      FROM osebe o
+      LEFT JOIN povezave p ON p.oseba_id = o.id
+      LEFT JOIN podjetja d ON d.id = p.podjetje_id
+      WHERE LOWER(o.ime) LIKE LOWER($1) OR LOWER(o.priimek) LIKE LOWER($2)
+      GROUP BY o.id LIMIT 3
+    `, [`%${parts[0]}%`, `%${parts[1]}%`])
+
+    if (r.rows.length) {
+      const o = r.rows[0]
+      const pov = o.povezave?.slice(0, 3).map(p => p.podjetje).join(', ') || 'ni podatkov'
+      return {
+        podatki: { tip: 'oseba', osebe: r.rows },
+        fallbackOdgovor: `${o.ime} ${o.priimek} je ${o.tip === 'akademik' ? 'akademik' : 'poslovnež'} s ${o.povezave?.length || 0} poslovnimi povezavami. Povezan z: ${pov}.`
+      }
+    }
+  }
+
+  if (ql.includes('akademik') || ql.includes('profesor') || ql.includes('feri') || ql.includes('univerz')) {
+    const r = await pool.query(`SELECT id, ime, priimek, opis FROM osebe WHERE tip = 'akademik' LIMIT 5`)
+    return {
+      podatki: { tip: 'akademiki', osebe: r.rows },
+      fallbackOdgovor: `V bazi je ${r.rows.length}+ akademikov UM FERI Inštituta za informatiko. Nekateri: ${r.rows.map(o => `${o.ime} ${o.priimek}`).join(', ')}.`
+    }
+  }
+
+  if (ql.includes('lobist')) {
+    const r = await pool.query(`SELECT COUNT(*) AS n FROM lobisti_info WHERE aktiven = true`)
+    return {
+      podatki: { tip: 'lobisti', stevilo: +r.rows[0].n },
+      fallbackOdgovor: `V registru lobistov je ${r.rows[0].n} aktivnih lobistov.`
+    }
+  }
+
+  if (ql.includes('pove') || ql.includes('mrež') || ql.includes('povekan')) {
+    const r = await pool.query(`
+      SELECT o.id, o.ime, o.priimek, COUNT(p.id) AS n
+      FROM osebe o JOIN povezave p ON p.oseba_id = o.id
+      GROUP BY o.id ORDER BY n DESC LIMIT 3`)
+    const top = r.rows.map(o => `${o.ime} ${o.priimek} (${o.n})`).join(', ')
+    return {
+      podatki: { tip: 'top_osebe', osebe: r.rows },
+      fallbackOdgovor: `Najbolj povezane osebe v bazi so: ${top}.`
+    }
+  }
+
+  const stats = await pool.query(`
+    SELECT (SELECT COUNT(*) FROM osebe) AS osebe, (SELECT COUNT(*) FROM podjetja) AS podjetja`)
+  const s = stats.rows[0]
+  return {
+    podatki: { tip: 'splosno' },
+    fallbackOdgovor: `Povezava.si je baza poslovnih mrež s ${s.osebe} osebami in ${s.podjetja} podjetji. Vprašaj me o konkretni osebi, podjetju ali poslovnih mrežah.`
+  }
+}
 
 // GET /search?q=janez&tip=poslovnez|akademik — iskanje oseb in podjetij
 app.get('/search', async (req, res) => {
