@@ -38,7 +38,7 @@ export default function Oseba() {
 
       <div className="profile-card">
         <div className="profile-top">
-          <Avatar name={fullName} size="lg" />
+          <Avatar name={fullName} size="lg" foto={data.fotografija_url} />
           <div className="profile-info">
             <h1>{fullName}</h1>
             {first && <p className="prof-sub">{first.vloga} · {first.popolno_ime}</p>}
@@ -72,6 +72,29 @@ export default function Oseba() {
                 ? <a href={first.vir} target="_blank" rel="noopener">Odpri vir ↗</a>
                 : <span>{first.vir || '—'}</span>}
             </div>
+          </div>
+        )}
+
+        {data.tip === 'akademik' && (data.opis || data.podrocja) && (
+          <div className="akademik-info">
+            {data.opis && (
+              <div className="akademik-vloga">{data.opis}</div>
+            )}
+            {data.podrocja && (
+              <div className="akademik-podrocja">
+                <div className="akademik-podrocja-label">Področja raziskovanja</div>
+                <div className="akademik-podrocja-tags">
+                  {data.podrocja.split(' · ').map((p, i) => (
+                    <span key={i} className="akademik-tag">{p.trim()}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {data.profil_url && (
+              <a className="akademik-profil-link" href={data.profil_url} target="_blank" rel="noopener">
+                Odpri profil na ii.feri.um.si ↗
+              </a>
+            )}
           </div>
         )}
       </div>

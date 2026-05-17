@@ -943,6 +943,269 @@
   border-radius: 20px;
   padding: 3px 10px;
 }
+.akademik-skupina {
+  margin-top: 12px;
+}
+.akademik-skupina-label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #7c3aed;
+  margin-bottom: 10px;
+  padding: 2px 10px;
+  background: #f5f3ff;
+  border-radius: 20px;
+}
+.home-akademik-vodstvo .avatar { box-shadow: 0 0 0 3px #7c3aed40; }
+
+.home-card-area {
+  font-size: 10px;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.3;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+/* ── Akademik info na profilu ────────────────────────────────────────────── */
+.akademik-info {
+  margin-top: 16px;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.akademik-vloga {
+  font-size: 13px;
+  color: #4c1d95;
+  font-weight: 500;
+}
+.akademik-podrocja-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.akademik-podrocja-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.akademik-tag {
+  font-size: 11.5px;
+  background: #ede9fe;
+  color: #5b21b6;
+  border-radius: 20px;
+  padding: 3px 10px;
+  line-height: 1.4;
+}
+.akademik-profil-link {
+  font-size: 12.5px;
+  color: #7c3aed;
+  text-decoration: none;
+  font-weight: 500;
+  margin-top: 4px;
+}
+.akademik-profil-link:hover { text-decoration: underline; }
+
+/* ── Register strani (Lobisti / Ovadeni) ───────────────────────────────── */
+.register-page {
+  padding: 28px 32px;
+  max-width: 860px;
+}
+.register-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.register-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.register-icon { font-size: 20px; }
+.register-desc {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  max-width: 520px;
+  line-height: 1.5;
+}
+.register-count-badge {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.register-count-badge.ovadeni-badge {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+.register-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.register-search-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+.register-search-wrap .search-icon-svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+.register-search {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.register-search:focus { border-color: #7c3aed; }
+.register-filter-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.register-filter-btn {
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  color: #475569;
+  transition: all 0.15s;
+}
+.register-filter-btn.active,
+.register-filter-btn:hover {
+  background: #ede9fe;
+  border-color: #7c3aed;
+  color: #5b21b6;
+}
+.register-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.register-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.register-card:hover {
+  border-color: #7c3aed40;
+  box-shadow: 0 2px 8px #7c3aed10;
+}
+.register-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.register-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+.register-card-sub {
+  font-size: 12.5px;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.register-card-sub2 {
+  font-size: 11.5px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+.register-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.register-badge {
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 2px 9px;
+}
+.register-badge.aktiven  { background: #d1fae5; color: #065f46; }
+.register-badge.neaktiven { background: #f3f4f6; color: #6b7280; }
+.register-card-reg {
+  font-size: 11px;
+  color: #94a3b8;
+}
+.register-card-datum {
+  font-size: 11px;
+  color: #94a3b8;
+}
+.register-vir-link {
+  font-size: 11px;
+  color: #7c3aed;
+  text-decoration: none;
+}
+.register-vir-link:hover { text-decoration: underline; }
+.ovadeni-initials {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #6366f1;
+  flex-shrink: 0;
+}
+.register-empty {
+  text-align: center;
+  padding: 60px 0;
+  color: #94a3b8;
+}
+.register-empty-icon { font-size: 40px; margin-bottom: 12px; }
+.register-empty p { font-size: 14px; }
 
 .site-footer {
   margin-top: 40px;
