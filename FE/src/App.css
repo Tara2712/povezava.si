@@ -769,6 +769,12 @@
   border-radius: 2px;
   flex-shrink: 0;
 }
+.omrezje-legend-diamond {
+  width: 10px; height: 10px;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+  border-radius: 1px;
+}
 .omrezje-panel {
   position: absolute;
   bottom: 16px;

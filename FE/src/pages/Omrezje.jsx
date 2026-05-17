@@ -6,15 +6,36 @@ import { Network } from 'vis-network'
 
 const DEPTH_COLORS = ['#3b82f6', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
+// Barve po subtype
+const SUBTYPE_STYLE = {
+  univerza:    { bg: '#f59e0b', border: '#fbbf24', font: '#1c1917', shape: 'diamond', size: 42 },
+  laboratorij: { bg: '#0ea5e9', border: '#38bdf8', font: '#f0f9ff', shape: 'box',     size: 22 },
+  podjetje:    { bg: '#10b981', border: '#34d399', font: '#ecfdf5', shape: 'box',     size: 16 },
+  akademik:    { bg: '#6366f1', border: '#818cf8', font: '#eef2ff', shape: 'dot',     size: 14 },
+  poslovnez:   { bg: '#8b5cf6', border: '#a78bfa', font: '#f5f3ff', shape: 'dot',     size: 14 },
+  default:     { bg: '#64748b', border: '#94a3b8', font: '#f8fafc', shape: 'dot',     size: 12 },
+}
+
 function getNodeStyle(n, colorMode) {
-  if (n.depth === 0) return { bg: '#ffffff', border: '#3b82f6', font: '#1e40af' }
+  if (n.depth === 0) return { bg: '#ffffff', border: '#3b82f6', font: '#1e40af', shape: 'dot', size: 32 }
+
   if (colorMode === 'tip') {
-    return n.type === 'oseba'
-      ? { bg: '#2563eb', border: '#93c5fd', font: '#dbeafe' }
-      : { bg: '#0d9488', border: '#5eead4', font: '#ccfbf1' }
+    if (n.type === 'podjetje') {
+      const s = SUBTYPE_STYLE[n.subtype] || SUBTYPE_STYLE.podjetje
+      return { ...s }
+    }
+    const s = SUBTYPE_STYLE[n.subtype] || SUBTYPE_STYLE.default
+    return { ...s }
+  }
+
+  // Stopnja barva — institucije vedno posebej
+  if (n.type === 'podjetje' && (n.subtype === 'univerza' || n.subtype === 'laboratorij')) {
+    const s = SUBTYPE_STYLE[n.subtype]
+    return { ...s }
   }
   const bg = DEPTH_COLORS[Math.min(n.depth - 1, DEPTH_COLORS.length - 1)]
-  return { bg, border: 'rgba(255,255,255,0.18)', font: '#f1f5f9' }
+  const shape = n.type === 'podjetje' ? 'box' : 'dot'
+  return { bg, border: 'rgba(255,255,255,0.25)', font: '#f1f5f9', shape, size: n.type === 'podjetje' ? 16 : 12 }
 }
 
 function buildVisData(rawNodes, rawEdges, filter, colorMode) {
@@ -25,25 +46,28 @@ function buildVisData(rawNodes, rawEdges, filter, colorMode) {
 
   const nodes = visible.map(n => {
     const isCenter = n.depth === 0
-    const isClose = n.depth <= 1
     const s = getNodeStyle(n, colorMode)
     const name = n.name || ''
-    const label = isCenter
-      ? name
-      : (name.length > 18 ? name.slice(0, 17) + '…' : name)
+    // Skrajšaj samo navadna podjetja, ne institucij
+    const maxLen = n.subtype === 'univerza' ? 30 : n.subtype === 'laboratorij' ? 24 : 18
+    const label = isCenter ? name : (name.length > maxLen ? name.slice(0, maxLen - 1) + '…' : name)
+
     return {
       id: n.key,
       label,
-      title: name,
-      shape: n.type === 'podjetje' && !isCenter ? 'box' : 'dot',
-      size: isCenter ? 30 : isClose ? 18 : 10,
+      title: `<b>${name}</b>${n.subtype ? `<br/><i>${n.subtype}</i>` : ''}`,
+      shape: isCenter ? 'dot' : s.shape,
+      size: isCenter ? 32 : s.size,
       color: {
         background: s.bg,
         border: s.border,
         highlight: { background: s.bg, border: '#ffffff' },
         hover: { background: s.bg, border: '#e2e8f0' },
       },
-      font: { color: s.font, size: isCenter ? 13 : 11, bold: isCenter },
+      font: { color: isCenter ? '#1e40af' : s.font, size: isCenter ? 14 : (n.subtype === 'univerza' ? 12 : n.subtype === 'laboratorij' ? 11 : 10), bold: isCenter || n.subtype === 'univerza' },
+      borderWidth: n.subtype === 'univerza' ? 3 : 2,
+      shadow: n.subtype === 'univerza' ? { enabled: true, color: 'rgba(245,158,11,0.4)', size: 12 } :
+              n.subtype === 'laboratorij' ? { enabled: true, color: 'rgba(14,165,233,0.25)', size: 6 } : false,
       ...(isCenter ? { x: 0, y: 0, fixed: { x: true, y: true }, physics: false } : {}),
     }
   })
@@ -53,18 +77,22 @@ function buildVisData(rawNodes, rawEdges, filter, colorMode) {
     .map((e, i) => {
       const fromNode = rawNodes.find(n => n.key === e.from)
       const d = fromNode?.depth ?? 1
+      const isHierarhy = e.hierarhija
+
       return {
         id: i,
         from: e.from,
         to: e.to,
-        dashes: d > 1,
-        width: d <= 1 ? 2 : 1,
+        dashes: isHierarhy ? [6, 4] : d > 2,
+        width: isHierarhy ? 2 : d <= 1 ? 2.5 : 1,
+        length: isHierarhy ? 120 : undefined,
         color: {
-          color: d <= 1 ? 'rgba(59,130,246,0.5)' : 'rgba(51,65,85,0.6)',
+          color: isHierarhy ? 'rgba(245,158,11,0.45)' :
+                 d <= 1 ? 'rgba(99,102,241,0.6)' : 'rgba(51,65,85,0.5)',
           highlight: '#60a5fa',
           hover: '#60a5fa',
         },
-        smooth: { type: 'continuous' },
+        smooth: { type: isHierarhy ? 'curvedCW' : 'continuous', roundness: isHierarhy ? 0.2 : 0 },
       }
     })
 
@@ -76,14 +104,14 @@ const NET_OPTIONS = {
     enabled: true,
     solver: 'forceAtlas2Based',
     forceAtlas2Based: {
-      gravitationalConstant: -130,
-      centralGravity: 0.005,
-      springLength: 200,
-      springConstant: 0.04,
-      damping: 0.4,
-      avoidOverlap: 1.5,
+      gravitationalConstant: -160,
+      centralGravity: 0.003,
+      springLength: 160,
+      springConstant: 0.05,
+      damping: 0.45,
+      avoidOverlap: 1.8,
     },
-    stabilization: { enabled: true, iterations: 250, updateInterval: 25 },
+    stabilization: { enabled: true, iterations: 350, updateInterval: 25 },
   },
   nodes: { borderWidth: 2 },
   edges: { arrows: { to: { enabled: false } } },
@@ -93,7 +121,7 @@ const NET_OPTIONS = {
     dragView: true,
     zoomView: true,
     selectConnectedEdges: true,
-    tooltipDelay: 100,
+    tooltipDelay: 80,
     navigationButtons: false,
   },
   layout: { improvedLayout: false },
@@ -224,8 +252,11 @@ export default function Omrezje() {
           <div className="omrezje-legend">
             {colorMode === 'tip' ? (
               <>
-                <LegendItem color="#2563eb" shape="dot" label="Oseba" />
-                <LegendItem color="#0d9488" shape="box" label="Podjetje" />
+                <LegendItem color="#f59e0b" shape="diamond" label="Univerza" />
+                <LegendItem color="#0ea5e9" shape="box"     label="Laboratorij" />
+                <LegendItem color="#10b981" shape="box"     label="Podjetje" />
+                <LegendItem color="#6366f1" shape="dot"     label="Akademik" />
+                <LegendItem color="#8b5cf6" shape="dot"     label="Poslovnež" />
               </>
             ) : (
               DEPTH_COLORS.slice(0, depth).map((c, i) => (
@@ -272,6 +303,8 @@ function LegendItem({ color, shape, label }) {
     <span className="omrezje-legend-item">
       {shape === 'box'
         ? <span className="omrezje-legend-box" style={{ background: color }} />
+        : shape === 'diamond'
+        ? <span className="omrezje-legend-diamond" style={{ background: color }} />
         : <span className="omrezje-legend-dot" style={{ background: color }} />
       }
       {label}
