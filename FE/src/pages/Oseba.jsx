@@ -23,6 +23,7 @@ export default function Oseba() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [clanki, setClanki] = useState([])
+  const [expandedConn, setExpandedConn] = useState(null)
 
   useEffect(() => {
     fetch(`${API}/osebe/${id}`)
@@ -109,14 +110,41 @@ export default function Oseba() {
       <p className="section-title">Povezave ({data.povezave?.length || 0})</p>
 
       {data.povezave?.map((p, i) => (
-        <Link key={i} className="conn-card" to={`/podjetje/${p.podjetje_id}`}>
-          <Avatar name={p.popolno_ime || '?'} size="sm" />
-          <div className="conn-body">
-            <div className="conn-name">{kratkoImeOrg(p.popolno_ime)}</div>
-            {p.pravna_oblika && <div className="conn-sub">{p.pravna_oblika}</div>}
+        <div key={i} className="conn-card-wrap">
+          <div
+            className={`conn-card${p.otroci?.length ? ' conn-card-expandable' : ''}`}
+            onClick={() => {
+              if (p.otroci?.length) {
+                setExpandedConn(expandedConn === i ? null : i)
+              } else {
+                navigate(`/podjetje/${p.podjetje_id}`)
+              }
+            }}
+          >
+            <Avatar name={p.popolno_ime || '?'} size="sm" />
+            <div className="conn-body">
+              <div className="conn-name">{kratkoImeOrg(p.popolno_ime)}</div>
+              {p.pravna_oblika && <div className="conn-sub">{p.pravna_oblika}</div>}
+            </div>
+            <span className="conn-tag">{p.vloga}</span>
+            {p.otroci?.length > 0 && (
+              <span className="conn-expand-icon">{expandedConn === i ? '▲' : '▼'}</span>
+            )}
           </div>
-          <span className="conn-tag">{p.vloga}</span>
-        </Link>
+          {p.otroci?.length > 0 && expandedConn === i && (
+            <div className="conn-children">
+              {p.otroci.map(otrok => (
+                <Link key={otrok.id} className="conn-child-item" to={`/podjetje/${otrok.id}`}>
+                  <span className="conn-child-dot" />
+                  {otrok.ime}
+                </Link>
+              ))}
+              <Link className="conn-child-open" to={`/podjetje/${p.podjetje_id}`}>
+                Odpri profil organizacije →
+              </Link>
+            </div>
+          )}
+        </div>
       ))}
 
       {data.povezave?.length === 0 && <p className="empty-msg">Ni znanih povezav</p>}

@@ -117,14 +117,32 @@ app.get('/osebe/:id', async (req, res) => {
 
     const povezave = await pool.query(`
       SELECT p.vloga, p.datum_od, p.datum_do,
-        d.id AS podjetje_id, d.popolno_ime, d.pravna_oblika
+        d.id AS podjetje_id, d.popolno_ime, d.pravna_oblika,
+        par.id AS parent_id, par.popolno_ime AS parent_ime
       FROM povezave p
       JOIN podjetja d ON d.id = p.podjetje_id
+      LEFT JOIN podjetja par ON par.id = d.parent_podjetje_id
       WHERE p.oseba_id = $1
       ORDER BY p.vloga
     `, [id])
 
-    res.json({ ...oseba.rows[0], povezave: povezave.rows })
+    const podjetjeIds = povezave.rows.map(p => p.podjetje_id)
+    let childrenMap = {}
+    if (podjetjeIds.length) {
+      const childrenRes = await pool.query(`
+        SELECT id, popolno_ime, parent_podjetje_id FROM podjetja
+        WHERE parent_podjetje_id = ANY($1) ORDER BY popolno_ime
+      `, [podjetjeIds])
+      for (const ch of childrenRes.rows) {
+        if (!childrenMap[ch.parent_podjetje_id]) childrenMap[ch.parent_podjetje_id] = []
+        childrenMap[ch.parent_podjetje_id].push({ id: ch.id, ime: ch.popolno_ime })
+      }
+    }
+
+    res.json({
+      ...oseba.rows[0],
+      povezave: povezave.rows.map(p => ({ ...p, otroci: childrenMap[p.podjetje_id] || [] }))
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
