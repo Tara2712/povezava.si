@@ -133,7 +133,7 @@ export default function Home() {
       fetch(`${API}/podjetja?limit=5`).then(r => r.json()),
     ]).then(([osebe, podjetja]) => setTop({ osebe, podjetja })).catch(() => {})
     fetch(`${API}/akademiki?limit=12`).then(r => r.json()).then(setAkademiki).catch(() => {})
-    fetch(`${API}/clanki?limit=6`).then(r => r.json()).then(setClanki).catch(() => {})
+    fetch(`${API}/clanki?limit=4`).then(r => r.json()).then(d => setClanki(d.clanki ?? d)).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -277,6 +277,7 @@ export default function Home() {
               <section className="home-section">
                 <div className="home-section-head">
                   <h2 className="home-section-title">Aktualno v medijih</h2>
+                  <Link to="/mediji" className="home-section-vse">Vse objave →</Link>
                 </div>
                 <div className="clanki-grid">
                   {clanki.map(c => <ClanekCard key={c.id} clanek={c} />)}
