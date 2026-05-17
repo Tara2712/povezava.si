@@ -10,6 +10,13 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('sl-SI')
 }
 
+function kratkoImeOrg(name) {
+  if (!name) return ''
+  if (name.includes('Univerza v Mariboru') && name.includes('elektrotehniko')) return 'UM FERI'
+  if (name.includes('Univerza v Mariboru')) return 'UM'
+  return name.length > 38 ? name.slice(0, 35) + '…' : name
+}
+
 export default function Oseba() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -41,7 +48,7 @@ export default function Oseba() {
           <Avatar name={fullName} size="lg" foto={data.fotografija_url} />
           <div className="profile-info">
             <h1>{fullName}</h1>
-            {first && <p className="prof-sub">{first.vloga} · {first.popolno_ime}</p>}
+            {first && <p className="prof-sub">{first.vloga} · {kratkoImeOrg(first.popolno_ime)}</p>}
             {data.zadnja_posodobitev && (
               <p className="prof-updated">Zadnja posodobitev: {fmtDate(data.zadnja_posodobitev)}</p>
             )}
@@ -56,7 +63,7 @@ export default function Oseba() {
             </div>
             <div className="detail-item">
               <label>Organizacija</label>
-              <span>{first.popolno_ime || '—'}</span>
+              <span>{kratkoImeOrg(first.popolno_ime) || '—'}</span>
             </div>
             <div className="detail-item">
               <label>Obdobje</label>
@@ -105,7 +112,7 @@ export default function Oseba() {
         <Link key={i} className="conn-card" to={`/podjetje/${p.podjetje_id}`}>
           <Avatar name={p.popolno_ime || '?'} size="sm" />
           <div className="conn-body">
-            <div className="conn-name">{p.popolno_ime}</div>
+            <div className="conn-name">{kratkoImeOrg(p.popolno_ime)}</div>
             {p.pravna_oblika && <div className="conn-sub">{p.pravna_oblika}</div>}
           </div>
           <span className="conn-tag">{p.vloga}</span>

@@ -87,24 +87,30 @@ router.get('/:id', async (req, res) => {
       }
     }
 
-    // Dodaj hierarhične robove lab → UM FERI
-    const labNodes = [...nodes.values()].filter(n => n.type === 'podjetje' && n.parentId)
-    for (const lab of labNodes) {
-      const parentKey = `d-${lab.parentId}`
-      if (!nodes.has(parentKey)) {
-        const pr = await pool.query(`SELECT id, popolno_ime FROM podjetja WHERE id = $1`, [lab.parentId])
-        if (pr.rows.length) {
-          const p = pr.rows[0]
-          nodes.set(parentKey, {
-            key: parentKey, id: p.id, type: 'podjetje',
-            subtype: podjetjeSubtype(p.popolno_ime, null),
-            name: p.popolno_ime, depth: lab.depth + 1
+    // Dodaj hierarhične robove: parent → otrok (UM FERI → laboratoriji/instituti)
+    const companyIds = [...nodes.values()].filter(n => n.type === 'podjetje').map(n => n.id)
+    if (companyIds.length) {
+      const childrenRes = await pool.query(`
+        SELECT id, popolno_ime, parent_podjetje_id FROM podjetja WHERE parent_podjetje_id = ANY($1)
+      `, [companyIds])
+
+      for (const ch of childrenRes.rows) {
+        if (nodes.size >= maxNodes) break
+        const childKey = `d-${ch.id}`
+        const parentKey = `d-${ch.parent_podjetje_id}`
+        if (!nodes.has(childKey)) {
+          const parentDepth = nodes.get(parentKey)?.depth ?? 1
+          nodes.set(childKey, {
+            key: childKey, id: ch.id, type: 'podjetje',
+            subtype: podjetjeSubtype(ch.popolno_ime, ch.parent_podjetje_id),
+            name: ch.popolno_ime, parentId: ch.parent_podjetje_id,
+            depth: parentDepth + 1
           })
         }
-      }
-      const eKey = `${lab.key}__${parentKey}`
-      if (!edges.find(e => e.key === eKey)) {
-        edges.push({ key: eKey, from: lab.key, to: parentKey, vloga: 'del institucije', hierarhija: true })
+        const eKey = `${parentKey}__${childKey}`
+        if (!edges.find(e => e.key === eKey)) {
+          edges.push({ key: eKey, from: parentKey, to: childKey, vloga: 'del institucije', hierarhija: true })
+        }
       }
     }
 
