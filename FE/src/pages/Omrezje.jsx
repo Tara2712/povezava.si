@@ -25,22 +25,25 @@ function buildVisData(rawNodes, rawEdges, filter, colorMode) {
 
   const nodes = visible.map(n => {
     const isCenter = n.depth === 0
+    const isClose = n.depth <= 1
     const s = getNodeStyle(n, colorMode)
     const name = n.name || ''
-    const label = isCenter ? name : (name.length > 20 ? name.slice(0, 19) + '…' : name)
+    const label = isCenter
+      ? name
+      : (name.length > 18 ? name.slice(0, 17) + '…' : name)
     return {
       id: n.key,
       label,
       title: name,
       shape: n.type === 'podjetje' && !isCenter ? 'box' : 'dot',
-      size: isCenter ? 30 : n.depth === 1 ? 16 : 11,
+      size: isCenter ? 30 : isClose ? 18 : 10,
       color: {
         background: s.bg,
         border: s.border,
         highlight: { background: s.bg, border: '#ffffff' },
         hover: { background: s.bg, border: '#e2e8f0' },
       },
-      font: { color: s.font, size: isCenter ? 13 : 10, bold: isCenter },
+      font: { color: s.font, size: isCenter ? 13 : 11, bold: isCenter },
       ...(isCenter ? { x: 0, y: 0, fixed: { x: true, y: true }, physics: false } : {}),
     }
   })
@@ -73,14 +76,14 @@ const NET_OPTIONS = {
     enabled: true,
     solver: 'forceAtlas2Based',
     forceAtlas2Based: {
-      gravitationalConstant: -80,
-      centralGravity: 0.008,
-      springLength: 140,
-      springConstant: 0.05,
+      gravitationalConstant: -130,
+      centralGravity: 0.005,
+      springLength: 200,
+      springConstant: 0.04,
       damping: 0.4,
-      avoidOverlap: 1.0,
+      avoidOverlap: 1.5,
     },
-    stabilization: { enabled: true, iterations: 200, updateInterval: 25 },
+    stabilization: { enabled: true, iterations: 250, updateInterval: 25 },
   },
   nodes: { borderWidth: 2 },
   edges: { arrows: { to: { enabled: false } } },
@@ -103,7 +106,7 @@ export default function Omrezje() {
   const networkRef = useRef(null)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [depth, setDepth] = useState(3)
+  const [depth, setDepth] = useState(2)
   const [filter, setFilter] = useState('vse')
   const [colorMode, setColorMode] = useState('stopnja')
   const [selected, setSelected] = useState(null)
@@ -179,6 +182,12 @@ export default function Omrezje() {
                 onClick={() => setDepth(d)}
               >{d}</button>
             ))}
+            <button
+              className="depth-btn"
+              style={{ marginLeft: 8, fontSize: 15 }}
+              title="Prilagodi pogled"
+              onClick={() => networkRef.current?.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } })}
+            >⊕</button>
           </div>
         </div>
 
