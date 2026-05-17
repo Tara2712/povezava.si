@@ -1,4 +1,5 @@
 require('dotenv').config()
+// v2.1 — lobisti, kazensko ovadeni registri
 const express = require('express')
 const { Pool } = require('pg')
 const podjetjaRoutes = require('./routes/podjetja')
