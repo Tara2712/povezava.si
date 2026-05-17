@@ -30,6 +30,10 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Povezava.si backend deluje!' })
 })
 
+const bfs = require('./test6Degrees/bfs')
+bfs.nalogajGraf() 
+bfs.setupRoutes(app)
+
 app.use('/api/podjetja', podjetjaRoutes)
 app.use('/api/osebe', osebeRoutes)
 app.use('/api/omrezje', omrezjeRoutes)
