@@ -1,8 +1,9 @@
 require('dotenv').config()
-// v2.1 — lobisti, kazensko ovadeni registri
+// v2.2 — Claude API fallback za AI asistent
 const express = require('express')
 const { Pool } = require('pg')
 const axios = require('axios')
+const Anthropic = require('@anthropic-ai/sdk')
 const podjetjaRoutes = require('./routes/podjetja')
 const osebeRoutes = require('./routes/osebe')
 const omrezjeRoutes = require('./routes/omrezje')
@@ -455,22 +456,39 @@ app.post('/ai/vprasaj', async (req, res) => {
   try {
     const context = await gatherContext(vprasanje, pool)
 
-    let ollamaOdgovor = null
+    const prompt = `Si asistent za Povezava.si, slovensko bazo poslovnih in akademskih mrež.\n\nPodatki iz baze:\n${JSON.stringify(context.podatki)}\n\nSistematski odgovor: "${context.fallbackOdgovor}"\n\nUporabnikovo vprašanje: "${vprasanje}"\n\nOdgovori v slovenščini, kratko (1-3 stavke). Ne ponovi besede za besedo — razširi ali izboljšaj odgovor.`
+
+    // 1. Ollama (lokalno)
+    let odgovor = null
+    let vir = 'sistem'
     const ollamaUrl   = process.env.OLLAMA_URL || 'http://localhost:11434'
     const ollamaModel = process.env.OLLAMA_MODEL || 'mistral'
     try {
       const resp = await axios.post(`${ollamaUrl}/api/generate`, {
-        model: ollamaModel,
-        prompt: `Si asistent za Povezava.si, slovensko bazo poslovnih in akademskih mrež.\n\nPodatki iz baze:\n${JSON.stringify(context.podatki)}\n\nSistematski odgovor: "${context.fallbackOdgovor}"\n\nUporabnikovo vprašanje: "${vprasanje}"\n\nOdgovori v slovenščini, kratko (1-3 stavke). Ne ponovi besede za besedo — razširi ali izboljšaj odgovor.`,
-        stream: false
+        model: ollamaModel, prompt, stream: false
       }, { timeout: 12000 })
-      ollamaOdgovor = resp.data?.response?.trim() || null
+      odgovor = resp.data?.response?.trim() || null
+      if (odgovor) vir = 'ollama'
     } catch (_) {}
 
+    // 2. Claude API (produkcija)
+    if (!odgovor && process.env.ANTHROPIC_API_KEY) {
+      try {
+        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+        const msg = await anthropic.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 256,
+          messages: [{ role: 'user', content: prompt }]
+        })
+        odgovor = msg.content[0]?.text?.trim() || null
+        if (odgovor) vir = 'claude'
+      } catch (_) {}
+    }
+
     res.json({
-      odgovor: ollamaOdgovor || context.fallbackOdgovor,
+      odgovor: odgovor || context.fallbackOdgovor,
       podatki: context.podatki,
-      vir: ollamaOdgovor ? 'ollama' : 'sistem'
+      vir
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
