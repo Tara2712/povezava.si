@@ -185,41 +185,14 @@ export default function Home() {
 
           {!isSearching && (
             <>
-              {/* Profiles row */}
-              {top.length > 0 && (
-                <section className="hd-section">
-                  <div className="hd-section-label">NAJBOLJ ISKANI PROFILI</div>
-                  <div className="hd-profiles-scroll">
-                    {top.map(o => {
-                      const name = `${o.ime} ${o.priimek}`
-                      return (
-                        <button key={o.id} className="hd-prof-card" onClick={() => navigate(`/oseba/${o.id}`)}>
-                          <Avatar name={name} size="lg" foto={o.fotografija_url} />
-                          <div className="hd-prof-name">{name}</div>
-                          <div className="hd-prof-sub">{o.naziv || 'Poslovnež'}</div>
-                          {o.institucija && <div className="hd-prof-co">{o.institucija}</div>}
-                          <div className="hd-prof-conn">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                            </svg>
-                            {o.stevilo_povezav} pov.
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </section>
-              )}
-
               {/* 3-column grid */}
               <div className="hd-grid3">
 
-                {/* TOP POVEZAVE */}
+                {/* NAJBOLJ ISKANI PROFILI */}
                 <div className="hd-card3">
                   <div className="hd-card3-head">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    TOP POVEZAVE
+                    NAJBOLJ ISKANI PROFILI
                   </div>
                   <div className="hd-card3-list">
                     {top.slice(0, 4).map(o => (
