@@ -65,6 +65,39 @@ router.get('/:maticna', async (req, res) => {
   }
 })
 
+// GET /podjetjaVsa — vse informacije o podjetjih (za zemljevid)
+app.get('/podjetjaVsa', async (req, res) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit) : 50
+
+    const result = await pool.query(`
+      SELECT 
+        d.id,
+        d.maticna,
+        d.popolno_ime,
+        d.pravna_oblika,
+        d.registrski_organ,
+        d.ulica,
+        d.hisna_stevilka,
+        d.naselje,
+        d.postna_stevilka,
+        d.posta,
+        d.drzava,
+        COUNT(p.id) AS stevilo_povezav
+      FROM podjetja d
+      LEFT JOIN povezave p ON p.podjetje_id = d.id
+      GROUP BY d.id
+      ORDER BY stevilo_povezav DESC
+      LIMIT $1
+    `, [limit])
+
+    res.json(result.rows)
+
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 
 /*
 // GET /podjetja — seznam podjetij (limit opcijski)
