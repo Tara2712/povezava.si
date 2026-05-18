@@ -49,13 +49,16 @@ export default function Osebe() {
     if (lobisti) params.set('lobisti', '1')
     if (ovadeni) params.set('ovadeni', '1')
 
-    fetch(`${API}/api/osebe?${params}`)
+    fetch(`${API}/osebe?${params}`)
       .then(r => r.json())
       .then(d => {
         const rows = Array.isArray(d) ? d : (d.osebe ?? [])
-        const total = Array.isArray(d) ? d.length : (d.skupaj ?? 0)
         setOsebe(rows)
-        getSkupaj(total)
+        if (!Array.isArray(d)) {
+          getSkupaj(d.skupaj ?? 0)
+        } else {
+          fetch(`${API}/api/stats`).then(r => r.json()).then(s => getSkupaj(s.osebe ?? rows.length)).catch(() => getSkupaj(rows.length))
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
