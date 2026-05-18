@@ -66,7 +66,7 @@ router.get('/:maticna', async (req, res) => {
 })
 
 // GET /podjetjaVsa — vse informacije o podjetjih (za zemljevid)
-app.get('/podjetjaVsa', async (req, res) => {
+router.get('/podjetjaVsa', async (req, res) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit) : 50
 
