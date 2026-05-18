@@ -47,8 +47,8 @@ export default function Home() {
   const top = [...topPoslovnezi.slice(0, 2), ...topAkademiki.slice(0, 2)]
 
   useEffect(() => {
-    fetch(`${API}/api/osebe?limit=4&tip=poslovnez&sort=povezave`).then(r => r.json()).then(d => setTopPoslovnezi(Array.isArray(d) ? d : (d.osebe ?? []))).catch(() => {})
-    fetch(`${API}/api/osebe?limit=4&tip=akademik&sort=povezave`).then(r => r.json()).then(d => setTopAkademiki(Array.isArray(d) ? d : (d.osebe ?? []))).catch(() => {})
+    fetch(`${API}/osebe?limit=4&tip=poslovnez`).then(r => r.json()).then(d => setTopPoslovnezi(Array.isArray(d) ? d : (d.osebe ?? []))).catch(() => {})
+    fetch(`${API}/akademiki?limit=4`).then(r => r.json()).then(d => setTopAkademiki(Array.isArray(d) ? d : (d.osebe ?? []))).catch(() => {})
     fetch(`${API}/clanki?limit=3`).then(r => r.json()).then(d => {
       const arr = Array.isArray(d) ? d : (d.clanki ?? [])
       setClanki(arr.slice(0, 3))
