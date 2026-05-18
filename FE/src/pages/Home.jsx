@@ -40,6 +40,8 @@ export default function Home() {
   const [topAkademiki, setTopAkademiki]   = useState([])
   const [clanki, setClanki]   = useState([])
   const [stats, setStats]     = useState(null)
+  const [lobCount, setLobCount] = useState(0)
+  const [ovCount, setOvCount]   = useState(0)
   const navigate = useNavigate()
   const inputRef = useRef(null)
   const dq = useDebounce(query, 280)
@@ -54,6 +56,8 @@ export default function Home() {
       setClanki(arr.slice(0, 3))
     }).catch(() => {})
     fetch(`${API}/stats`).then(r => r.json()).then(setStats).catch(() => {})
+    fetch(`${API}/lobisti?limit=1`).then(r => r.json()).then(d => setLobCount(d.skupaj ?? 0)).catch(() => {})
+    fetch(`${API}/ovadeni?limit=1`).then(r => r.json()).then(d => setOvCount(d.skupaj ?? 0)).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -188,11 +192,11 @@ export default function Home() {
               {/* 3-column grid */}
               <div className="hd-grid3">
 
-                {/* NAJBOLJ ISKANI PROFILI */}
+                {/* NAJVEČ POVEZAV */}
                 <div className="hd-card3">
                   <div className="hd-card3-head">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    NAJBOLJ ISKANI PROFILI
+                    NAJVEČ POVEZAV
                   </div>
                   <div className="hd-card3-list">
                     {top.slice(0, 4).map(o => (
@@ -237,30 +241,43 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* DRUGI SO VPRAŠALI */}
+                {/* REGISTRI */}
                 <div className="hd-card3">
                   <div className="hd-card3-head">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    DRUGI SO VPRAŠALI
-                    <Link to="/asistent" className="hd-card3-more">AI →</Link>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    REGISTRI
                   </div>
                   <div className="hd-card3-list">
-                    {[
-                      'Kdo ima največ poslovnih povezav?',
-                      'Kateri akademiki so v upravnih odborih?',
-                      'Kdo je vpisan v register lobistov?',
-                      'Katere osebe so kazensko ovadene?',
-                      'Katera podjetja imajo največ direktorjev?',
-                    ].map((q, i) => (
-                      <button
-                        key={i}
-                        className="hd-asked-item"
-                        onClick={() => navigate(`/asistent?q=${encodeURIComponent(q)}`)}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        {q}
-                      </button>
-                    ))}
+                    <Link to="/lobisti" className="hd-reg-item hd-reg-lobist">
+                      <div className="hd-reg-left">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        <div>
+                          <div className="hd-reg-name">Lobisti</div>
+                          <div className="hd-reg-desc">Register KPK</div>
+                        </div>
+                      </div>
+                      {lobCount > 0 && <span className="hd-reg-count">{lobCount}</span>}
+                    </Link>
+                    <Link to="/ovadeni" className="hd-reg-item hd-reg-ovaden">
+                      <div className="hd-reg-left">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <div>
+                          <div className="hd-reg-name">Kazensko ovadeni</div>
+                          <div className="hd-reg-desc">Sodne zadeve</div>
+                        </div>
+                      </div>
+                      {ovCount > 0 && <span className="hd-reg-count">{ovCount}</span>}
+                    </Link>
+                    <Link to="/asistent" className="hd-reg-item hd-reg-ai">
+                      <div className="hd-reg-left">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                        <div>
+                          <div className="hd-reg-name">AI Asistent</div>
+                          <div className="hd-reg-desc">Vprašaj o omrežju</div>
+                        </div>
+                      </div>
+                      <span className="hd-reg-arrow">→</span>
+                    </Link>
                   </div>
                 </div>
 
