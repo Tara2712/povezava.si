@@ -15,12 +15,15 @@ export default function Oseba() {
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
+  const [clanki, setClanki] = useState([])
 
   useEffect(() => {
     fetch(`${API}/osebe/${id}`)
       .then(r => { if (!r.ok) throw new Error('Oseba ni najdena'); return r.json() })
       .then(setData)
       .catch(e => setError(e.message))
+    fetch(`${API}/osebe/${id}/clanki`)
+      .then(r => r.json()).then(setClanki).catch(() => {})
   }, [id])
 
   if (error) return <Layout><p className="error-msg">{error}</p></Layout>
@@ -31,11 +34,11 @@ export default function Oseba() {
 
   return (
     <Layout>
-      <button className="back-btn" onClick={() => navigate(-1)}>← Nazaj</button>
+      <button className="back-btn" onClick={() => navigate('/')}>← Nazaj na iskanje</button>
 
       <div className="profile-card">
         <div className="profile-top">
-          <Avatar name={fullName} size="lg" />
+          <Avatar name={fullName} size="lg" foto={data.fotografija_url} />
           <div className="profile-info">
             <h1>{fullName}</h1>
             {first && <p className="prof-sub">{first.vloga} · {first.popolno_ime}</p>}
@@ -71,6 +74,29 @@ export default function Oseba() {
             </div>
           </div>
         )}
+
+        {data.tip === 'akademik' && (data.opis || data.podrocja) && (
+          <div className="akademik-info">
+            {data.opis && (
+              <div className="akademik-vloga">{data.opis}</div>
+            )}
+            {data.podrocja && (
+              <div className="akademik-podrocja">
+                <div className="akademik-podrocja-label">Področja raziskovanja</div>
+                <div className="akademik-podrocja-tags">
+                  {data.podrocja.split(' · ').map((p, i) => (
+                    <span key={i} className="akademik-tag">{p.trim()}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {data.profil_url && (
+              <a className="akademik-profil-link" href={data.profil_url} target="_blank" rel="noopener">
+                Odpri profil na ii.feri.um.si ↗
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       <p className="section-title">Povezave ({data.povezave?.length || 0})</p>
@@ -91,6 +117,25 @@ export default function Oseba() {
       <Link className="open-network-btn" to={`/omrezje/${id}`}>
         Odpri v omrežju ↗
       </Link>
+
+      {clanki.length > 0 && (
+        <>
+          <p className="section-title" style={{ marginTop: 24 }}>Omembe v medijih ({clanki.length})</p>
+          <div className="clanki-grid">
+            {clanki.map(c => (
+              <a key={c.id} className="clanek-card" href={c.url} target="_blank" rel="noopener noreferrer">
+                <div className="clanek-meta">
+                  <span className="clanek-vir">{c.vir}</span>
+                  <span className="clanek-datum">
+                    {c.datum ? new Date(c.datum).toLocaleDateString('sl-SI', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                  </span>
+                </div>
+                <div className="clanek-naslov">{c.naslov}</div>
+              </a>
+            ))}
+          </div>
+        </>
+      )}
     </Layout>
   )
 }

@@ -29,6 +29,8 @@
 [X] Ui figma
 [X] ročni vnos, podjetji in povezav
 [x] ajpes scraper za osebe + scraper za osebe in aktivnost podjetij
+[] linkedin scraper????
+[] zemljevid slovenije - točke prikazujejo podjetja
 [] osnovna logika grafa
 [X] 6 degrees of seperation 
     [X] model za povezovanje med podjetji, osebami, regijami, mediji,...
