@@ -7,6 +7,7 @@ import Podjetje from './pages/Podjetje'
 import Omrezje from './pages/Omrezje'
 import Lobisti from './pages/Lobisti'
 import Ovadeni from './pages/Ovadeni'
+import Zemljevid from './pages/zemljevid'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Iskanje />} />
         <Route path="/mapa" element={<Mapa />} />
+        <Route path="/zemljevid" element={<Zemljevid />} />
         <Route path="/oseba/:id" element={<Oseba />} />
         <Route path="/podjetje/:id" element={<Podjetje />} />
         <Route path="/omrezje/:id" element={<Omrezje />} />

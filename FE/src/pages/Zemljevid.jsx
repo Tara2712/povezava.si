@@ -8,11 +8,12 @@ import {
 } from 'react-leaflet'
 
 import MarkerClusterGroup from 'react-leaflet-cluster'
-import { Link } from 'react-router-dom'
 import L from 'leaflet'
 
 import 'leaflet/dist/leaflet.css'
 import './zemljevid.css'
+
+import Layout from '../components/Layout'
 
 import icon from 'leaflet/dist/images/marker-icon.png'
 import iconShadow from 'leaflet/dist/images/marker-shadow.png'
@@ -26,7 +27,9 @@ const DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon
 
-const API_URL = "http://localhost:3000/podjetjaVsa"
+const API_URL = import.meta.env.VITE_API_URL
+// Naredi si .env.local file in not daj: VITE_API_URL=https://povezava-si.onrender.com/podjetjaVsa
+// const API_URL = "http://localhost:3000/podjetjaVsa"
 
 const SLOVENIA_CENTER = [46.1512, 14.9955]
 
@@ -44,30 +47,6 @@ function MapBoundsController() {
 
   return null
 }
-
-/* ====== ICONS (kot v tvojem primeru) ====== */
-const IconMap = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
-  </svg>
-)
-
-const IconSearch = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-  </svg>
-)
-
-const IconNetwork = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="18" cy="5" r="3" />
-    <circle cx="6" cy="12" r="3" />
-    <circle cx="18" cy="19" r="3" />
-    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-  </svg>
-)
 
 export default function Mapa() {
   const [companies, setCompanies] = useState([])
@@ -98,10 +77,9 @@ export default function Mapa() {
           }))
 
         setCompanies(validCompanies)
-        setLoading(false)
-
       } catch (err) {
         console.error(err)
+      } finally {
         setLoading(false)
       }
     }
@@ -113,55 +91,35 @@ export default function Mapa() {
     const count = cluster.getChildCount()
 
     return L.divIcon({
-      html: `<div class="custom-cluster"><span>${count}</span></div>`,
+      html: `
+        <div class="custom-cluster">
+          <span>${count}</span>
+        </div>
+      `,
       className: 'cluster-wrapper',
       iconSize: L.point(50, 50, true)
     })
   }
 
-  return (
-    <div className="dashboard" style={{ display: 'flex', width: '100vw', height: '100vh' }}>
-
-      {/* ===== LEFT SIDEBAR ===== */}
-      <aside className="sidebar" style={{
-        width: '240px',
-        background: '#0f172a',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '20px'
-      }}>
-        <div style={{ marginBottom: '30px', fontWeight: 'bold', fontSize: '18px' }}>
-          Povezava.si
-        </div>
-
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <Link to="/" style={{ color: '#fff', textDecoration: 'none', display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <IconMap />
-            Karta
-          </Link>
-
-          <Link to="/iskanje" style={{ color: '#94a3b8', textDecoration: 'none', display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <IconSearch />
-            Iskanje
-          </Link>
-
-          <span style={{ color: '#475569', display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <IconNetwork />
-            Omrežje
-          </span>
-        </nav>
-      </aside>
-
-      {/* ===== MAP ===== */}
-      <div style={{ flex: 1 }}>
+return (
+  <Layout>
+    <div
+      className="map-page"
+      style={{
+        position: 'relative',
+        height: '100%',
+        width: '100%'
+      }}
+    >
+      {/* MAPA (VEDNO POLNI CELOTEN PROSTOR) */}
+      <div style={{ height: '100%', width: '100%' }}>
         <MapContainer
           center={SLOVENIA_CENTER}
           zoom={8}
           minZoom={8}
           maxZoom={18}
           maxBounds={SLOVENIA_BOUNDS}
-          style={{ width: '100%', height: '100%' }}
+          style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -194,21 +152,36 @@ export default function Mapa() {
         </MapContainer>
       </div>
 
-      {/* ===== RIGHT PANEL ===== */}
+      {/* DESNI PANEL (OVERLAY!) */}
       {selectedCompany && (
-        <div style={{
-          width: '420px',
-          background: '#fff',
-          borderLeft: '1px solid #e2e8f0',
-          overflowY: 'auto',
-          padding: '24px'
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '420px',
+            height: '100%',
+            background: '#fff',
+            borderLeft: '1px solid #e2e8f0',
+            overflowY: 'auto',
+            padding: '24px',
+            boxShadow: '-8px 0 25px rgba(0,0,0,0.15)',
+            zIndex: 1000
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <h2 style={{ margin: 0 }}>{selectedCompany.popolno_ime}</h2>
+            <h2 style={{ margin: 0, fontSize: '22px' }}>
+              {selectedCompany.popolno_ime}
+            </h2>
 
             <button
               onClick={() => setSelectedCompany(null)}
-              style={{ border: 'none', background: 'transparent', fontSize: '20px' }}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                fontSize: '22px',
+                cursor: 'pointer'
+              }}
             >
               ✕
             </button>
@@ -216,30 +189,53 @@ export default function Mapa() {
 
           <div style={{ marginTop: '20px' }}>
             {Object.entries(selectedCompany).map(([key, value]) => (
-              <div key={key} style={{ marginBottom: '10px' }}>
-                <div style={{ fontSize: '12px', color: '#94a3b8' }}>{key}</div>
-                <div style={{ fontSize: '14px' }}>{String(value)}</div>
+              <div
+                key={key}
+                style={{
+                  marginBottom: '14px',
+                  paddingBottom: '10px',
+                  borderBottom: '1px solid #f1f5f9'
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '12px',
+                    color: '#64748b',
+                    marginBottom: '4px',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  {key}
+                </div>
+
+                <div style={{ fontSize: '14px' }}>
+                  {String(value)}
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ===== LOADING ===== */}
+      {/* LOADING */}
       {loading && (
-        <div style={{
-          position: 'absolute',
-          top: 20,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: '#0f172a',
-          color: '#fff',
-          padding: '10px 20px',
-          borderRadius: '999px'
-        }}>
-          Nalaganje...
+        <div
+          style={{
+            position: 'absolute',
+            top: 20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#0f172a',
+            color: '#fff',
+            padding: '12px 24px',
+            borderRadius: '999px',
+            zIndex: 9999
+          }}
+        >
+          Nalaganje podjetij...
         </div>
       )}
     </div>
-  )
+  </Layout>
+)
 }
