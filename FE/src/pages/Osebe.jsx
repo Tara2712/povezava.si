@@ -52,8 +52,10 @@ export default function Osebe() {
     fetch(`${API}/api/osebe?${params}`)
       .then(r => r.json())
       .then(d => {
-        setOsebe(d.osebe ?? [])
-        getSkupaj(d.skupaj ?? 0)
+        const rows = Array.isArray(d) ? d : (d.osebe ?? [])
+        const total = Array.isArray(d) ? d.length : (d.skupaj ?? 0)
+        setOsebe(rows)
+        getSkupaj(total)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
