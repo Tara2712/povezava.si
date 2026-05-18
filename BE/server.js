@@ -1,9 +1,9 @@
 require('dotenv').config()
-// v2.2 — Claude API fallback za AI asistent
+// v2.3 — Groq (brezplačen) fallback za AI asistent
 const express = require('express')
 const { Pool } = require('pg')
 const axios = require('axios')
-const Anthropic = require('@anthropic-ai/sdk')
+const OpenAI = require('openai')
 const podjetjaRoutes = require('./routes/podjetja')
 const osebeRoutes = require('./routes/osebe')
 const omrezjeRoutes = require('./routes/omrezje')
@@ -471,17 +471,21 @@ app.post('/ai/vprasaj', async (req, res) => {
       if (odgovor) vir = 'ollama'
     } catch (_) {}
 
-    // 2. Claude API (produkcija)
-    if (!odgovor && process.env.ANTHROPIC_API_KEY) {
+    // 2. Groq (brezplačen, produkcija)
+    if (!odgovor && process.env.GROQ_API_KEY) {
       try {
-        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-        const msg = await anthropic.messages.create({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 256,
-          messages: [{ role: 'user', content: prompt }]
+        const groq = new OpenAI({
+          apiKey: process.env.GROQ_API_KEY,
+          baseURL: 'https://api.groq.com/openai/v1'
         })
-        odgovor = msg.content[0]?.text?.trim() || null
-        if (odgovor) vir = 'claude'
+        const resp = await groq.chat.completions.create({
+          model: 'llama-3.1-8b-instant',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 256,
+          temperature: 0.3
+        })
+        odgovor = resp.choices[0]?.message?.content?.trim() || null
+        if (odgovor) vir = 'groq'
       } catch (_) {}
     }
 
