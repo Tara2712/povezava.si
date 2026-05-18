@@ -86,17 +86,17 @@ export default function Home() {
       <div className="hd-page">
 
         {/* ── HERO ── */}
-        <div className="hd-hero">
+        <div className="hd-hero hd-hero-light">
           <div className="hd-hero-bg" />
           <div className="hd-hero-content">
-            <h1 className="hd-greeting">{getGreeting()}</h1>
-            <p className="hd-subtitle">Kaj vas zanima v slovenskem poslovnem omrežju?</p>
+            <h1 className="hd-greeting hd-greeting-light">{getGreeting()}</h1>
+            <p className="hd-subtitle hd-subtitle-light">Kaj vas zanima v slovenskem poslovnem omrežju?</p>
 
             {/* Search bar */}
-            <div className="hd-search-card">
+            <div className="hd-search-card hd-search-card-light">
               <input
                 ref={inputRef}
-                className="hd-input"
+                className="hd-input hd-input-light"
                 placeholder="Išči osebo, podjetje ali vprašaj AI…"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
@@ -115,7 +115,7 @@ export default function Home() {
             </div>
 
             {/* Quick pills */}
-            <div className="hd-quick-pills">
+            <div className="hd-quick-pills hd-quick-pills-light">
               <button className="hd-qpill" onClick={() => inputRef.current?.focus()}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 Poišči osebo
