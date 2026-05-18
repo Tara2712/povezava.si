@@ -36,22 +36,24 @@ export default function Home() {
   const [query, setQuery]     = useState('')
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
-  const [top, setTop]         = useState([])
+  const [topPoslovnezi, setTopPoslovnezi] = useState([])
+  const [topAkademiki, setTopAkademiki]   = useState([])
   const [clanki, setClanki]   = useState([])
-  const [lobCount, setLobCount] = useState(0)
-  const [ovCount, setOvCount]   = useState(0)
+  const [stats, setStats]     = useState(null)
   const navigate = useNavigate()
   const inputRef = useRef(null)
   const dq = useDebounce(query, 280)
 
+  const top = [...topPoslovnezi.slice(0, 2), ...topAkademiki.slice(0, 2)]
+
   useEffect(() => {
-    fetch(`${API}/osebe?limit=8&tip=poslovnez`).then(r => r.json()).then(setTop).catch(() => {})
+    fetch(`${API}/api/osebe?limit=4&tip=poslovnez&sort=povezave`).then(r => r.json()).then(d => setTopPoslovnezi(d.osebe ?? [])).catch(() => {})
+    fetch(`${API}/api/osebe?limit=4&tip=akademik&sort=povezave`).then(r => r.json()).then(d => setTopAkademiki(d.osebe ?? [])).catch(() => {})
     fetch(`${API}/clanki?limit=3`).then(r => r.json()).then(d => {
       const arr = Array.isArray(d) ? d : (d.clanki ?? [])
       setClanki(arr.slice(0, 3))
     }).catch(() => {})
-    fetch(`${API}/lobisti?limit=1`).then(r => r.json()).then(d => setLobCount(d.skupaj ?? 0)).catch(() => {})
-    fetch(`${API}/ovadeni?limit=1`).then(r => r.json()).then(d => setOvCount(d.skupaj ?? 0)).catch(() => {})
+    fetch(`${API}/stats`).then(r => r.json()).then(setStats).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -73,9 +75,9 @@ export default function Home() {
     return item.tip === 'oseba' ? `${item.ime} ${item.priimek}` : item.naziv
   }
 
-  function handleSend() {
+  function handleSearch() {
     if (query.trim()) {
-      navigate(`/asistent?q=${encodeURIComponent(query.trim())}`)
+      navigate(`/osebe?q=${encodeURIComponent(query.trim())}`)
     }
   }
 
@@ -94,47 +96,66 @@ export default function Home() {
 
             {/* Search bar */}
             <div className="hd-search-card hd-search-card-light">
-              <input
-                ref={inputRef}
-                className="hd-input hd-input-light"
-                placeholder="Išči osebo, podjetje ali vprašaj AI…"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSend()}
-                autoFocus
-              />
-              <div className="hd-search-footer">
-                <span className="hd-ai-label">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                  Povezava AI
-                </span>
-                <div className="hd-search-actions">
-                  <button className="hd-send-btn" onClick={handleSend}>Pošlji</button>
-                </div>
+              <div className="hd-search-row">
+                <svg className="hd-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input
+                  ref={inputRef}
+                  className="hd-input hd-input-light"
+                  placeholder="Išči osebo ali podjetje…"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                  autoFocus
+                />
+                {query && (
+                  <button className="hd-clear-btn" onClick={() => setQuery('')}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Quick pills */}
             <div className="hd-quick-pills hd-quick-pills-light">
-              <button className="hd-qpill" onClick={() => inputRef.current?.focus()}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                Poišči osebo
-              </button>
+              <Link className="hd-qpill" to="/osebe">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Seznam oseb
+              </Link>
               <Link className="hd-qpill" to="/mediji">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/></svg>
                 V medijih
               </Link>
               <Link className="hd-qpill" to="/lobisti">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 Lobisti
               </Link>
-              <Link className="hd-qpill" to="/asistent">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                AI Asistent
+              <Link className="hd-qpill" to="/ovadeni">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Ovadeni
               </Link>
             </div>
           </div>
         </div>
+
+        {/* ── STATS BAR ── */}
+        {stats && (
+          <div className="hd-stats-bar">
+            <div className="hd-stat">
+              <span className="hd-stat-num">{stats.osebe.toLocaleString('sl-SI')}</span>
+              <span className="hd-stat-lbl">oseb v bazi</span>
+            </div>
+            <div className="hd-stat-sep" />
+            <div className="hd-stat">
+              <span className="hd-stat-num">{stats.podjetja.toLocaleString('sl-SI')}</span>
+              <span className="hd-stat-lbl">podjetij &amp; org.</span>
+            </div>
+            <div className="hd-stat-sep" />
+            <div className="hd-stat">
+              <span className="hd-stat-num">{stats.povezave.toLocaleString('sl-SI')}</span>
+              <span className="hd-stat-lbl">poslovnih povezav</span>
+            </div>
+          </div>
+        )}
 
         {/* ── CONTENT ── */}
         <div className="hd-body">
@@ -220,11 +241,11 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* V MEDIJIH */}
+                {/* ZADNJE NOVICE */}
                 <div className="hd-card3">
                   <div className="hd-card3-head">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/></svg>
-                    V MEDIJIH
+                    ZADNJE NOVICE
                     <Link to="/mediji" className="hd-card3-more">Vse →</Link>
                   </div>
                   <div className="hd-card3-list">
@@ -243,53 +264,35 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* REGISTRI */}
+                {/* DRUGI SO VPRAŠALI */}
                 <div className="hd-card3">
                   <div className="hd-card3-head">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    REGISTRI
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    DRUGI SO VPRAŠALI
+                    <Link to="/asistent" className="hd-card3-more">AI →</Link>
                   </div>
                   <div className="hd-card3-list">
-                    <Link to="/lobisti" className="hd-reg-item hd-reg-lobist">
-                      <div className="hd-reg-left">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        <div>
-                          <div className="hd-reg-name">Lobisti</div>
-                          <div className="hd-reg-desc">Register KPK</div>
-                        </div>
-                      </div>
-                      {lobCount > 0 && <span className="hd-reg-count">{lobCount}</span>}
-                    </Link>
-                    <Link to="/ovadeni" className="hd-reg-item hd-reg-ovaden">
-                      <div className="hd-reg-left">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        <div>
-                          <div className="hd-reg-name">Kazensko ovadeni</div>
-                          <div className="hd-reg-desc">Sodne zadeve</div>
-                        </div>
-                      </div>
-                      {ovCount > 0 && <span className="hd-reg-count">{ovCount}</span>}
-                    </Link>
-                    <Link to="/asistent" className="hd-reg-item hd-reg-ai">
-                      <div className="hd-reg-left">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                        <div>
-                          <div className="hd-reg-name">AI Asistent</div>
-                          <div className="hd-reg-desc">Vprašaj o omrežju</div>
-                        </div>
-                      </div>
-                      <span className="hd-reg-arrow">→</span>
-                    </Link>
+                    {[
+                      'Kdo ima največ poslovnih povezav?',
+                      'Kateri akademiki so v upravnih odborih?',
+                      'Kdo je vpisan v register lobistov?',
+                      'Katere osebe so kazensko ovadene?',
+                      'Katera podjetja imajo največ direktorjev?',
+                    ].map((q, i) => (
+                      <button
+                        key={i}
+                        className="hd-asked-item"
+                        onClick={() => navigate(`/asistent?q=${encodeURIComponent(q)}`)}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        {q}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
               </div>
 
-              <footer className="hd-footer">
-                <span>Podatki: AJPES PRS, javni viri</span>
-                <span>·</span>
-                <span>Povezava.si © 2026</span>
-              </footer>
             </>
           )}
         </div>
