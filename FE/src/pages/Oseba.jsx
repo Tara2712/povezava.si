@@ -34,7 +34,7 @@ export default function Oseba() {
 
   return (
     <Layout>
-      <button className="back-btn" onClick={() => navigate('/')}>← Nazaj na iskanje</button>
+      <button className="back-btn" onClick={() => navigate('/')}>← Nazaj</button>
 
       <div className="profile-card">
         <div className="profile-top">

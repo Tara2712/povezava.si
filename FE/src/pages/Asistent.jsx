@@ -196,8 +196,8 @@ export default function Asistent() {
   const inputRef  = useRef(null)
 
   useEffect(() => {
-    if (tab === 'ai') bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, tab])
+    if (tab === 'ai' && messages.length > 0) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   async function send(text) {
     const q = (text || input).trim()
