@@ -1,8 +1,9 @@
 require('dotenv').config()
-// v2.1 — lobisti, kazensko ovadeni registri
+// v2.3 — Groq (brezplačen) fallback za AI asistent
 const express = require('express')
 const { Pool } = require('pg')
 const axios = require('axios')
+const OpenAI = require('openai')
 const podjetjaRoutes = require('./routes/podjetja')
 const osebeRoutes = require('./routes/osebe')
 const omrezjeRoutes = require('./routes/omrezje')
@@ -157,7 +158,6 @@ app.get('/podjetja', async (req, res) => {
 // GET /podjetjaVsa — vse informacije o podjetjih (za zemljevid)
 app.get('/podjetjaVsa', async (req, res) => {
   try {
-    const limit = req.query.limit ? parseInt(req.query.limit) : 50
 
     const result = await pool.query(`
       SELECT 
@@ -172,13 +172,9 @@ app.get('/podjetjaVsa', async (req, res) => {
         d.postna_stevilka,
         d.posta,
         d.drzava,
-        COUNT(p.id) AS stevilo_povezav
-      FROM podjetja d
-      LEFT JOIN povezave p ON p.podjetje_id = d.id
-      GROUP BY d.id
-      ORDER BY stevilo_povezav DESC
-      LIMIT $1
-    `, [limit])
+        d.lat,
+        d.lng
+      FROM podjetja d`)
 
     res.json(result.rows)
 
@@ -459,22 +455,43 @@ app.post('/ai/vprasaj', async (req, res) => {
   try {
     const context = await gatherContext(vprasanje, pool)
 
-    let ollamaOdgovor = null
+    const prompt = `Si asistent za Povezava.si, slovensko bazo poslovnih in akademskih mrež.\n\nPodatki iz baze:\n${JSON.stringify(context.podatki)}\n\nSistematski odgovor: "${context.fallbackOdgovor}"\n\nUporabnikovo vprašanje: "${vprasanje}"\n\nOdgovori v slovenščini, kratko (1-3 stavke). Ne ponovi besede za besedo — razširi ali izboljšaj odgovor.`
+
+    // 1. Ollama (lokalno)
+    let odgovor = null
+    let vir = 'sistem'
     const ollamaUrl   = process.env.OLLAMA_URL || 'http://localhost:11434'
     const ollamaModel = process.env.OLLAMA_MODEL || 'mistral'
     try {
       const resp = await axios.post(`${ollamaUrl}/api/generate`, {
-        model: ollamaModel,
-        prompt: `Si asistent za Povezava.si, slovensko bazo poslovnih in akademskih mrež.\n\nPodatki iz baze:\n${JSON.stringify(context.podatki)}\n\nSistematski odgovor: "${context.fallbackOdgovor}"\n\nUporabnikovo vprašanje: "${vprasanje}"\n\nOdgovori v slovenščini, kratko (1-3 stavke). Ne ponovi besede za besedo — razširi ali izboljšaj odgovor.`,
-        stream: false
+        model: ollamaModel, prompt, stream: false
       }, { timeout: 12000 })
-      ollamaOdgovor = resp.data?.response?.trim() || null
+      odgovor = resp.data?.response?.trim() || null
+      if (odgovor) vir = 'ollama'
     } catch (_) {}
 
+    // 2. Groq (brezplačen, produkcija)
+    if (!odgovor && process.env.GROQ_API_KEY) {
+      try {
+        const groq = new OpenAI({
+          apiKey: process.env.GROQ_API_KEY,
+          baseURL: 'https://api.groq.com/openai/v1'
+        })
+        const resp = await groq.chat.completions.create({
+          model: 'llama-3.1-8b-instant',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 256,
+          temperature: 0.3
+        })
+        odgovor = resp.choices[0]?.message?.content?.trim() || null
+        if (odgovor) vir = 'groq'
+      } catch (_) {}
+    }
+
     res.json({
-      odgovor: ollamaOdgovor || context.fallbackOdgovor,
+      odgovor: odgovor || context.fallbackOdgovor,
       podatki: context.podatki,
-      vir: ollamaOdgovor ? 'ollama' : 'sistem'
+      vir
     })
   } catch (err) {
     res.status(500).json({ error: err.message })

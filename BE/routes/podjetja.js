@@ -68,7 +68,6 @@ router.get('/:maticna', async (req, res) => {
 // GET /podjetjaVsa — vse informacije o podjetjih (za zemljevid)
 router.get('/podjetjaVsa', async (req, res) => {
   try {
-    const limit = req.query.limit ? parseInt(req.query.limit) : 50
 
     const result = await pool.query(`
       SELECT 
@@ -83,13 +82,10 @@ router.get('/podjetjaVsa', async (req, res) => {
         d.postna_stevilka,
         d.posta,
         d.drzava,
-        COUNT(p.id) AS stevilo_povezav
+        d.lat,
+        d.lng
       FROM podjetja d
-      LEFT JOIN povezave p ON p.podjetje_id = d.id
-      GROUP BY d.id
-      ORDER BY stevilo_povezav DESC
-      LIMIT $1
-    `, [limit])
+    `)
 
     res.json(result.rows)
 
