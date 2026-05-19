@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 import { API } from '../api'
+import { cachedFetch } from '../cache'
 
 const TIP_OPTIONS = [
   { value: '', label: 'Vse' },
@@ -57,7 +58,7 @@ export default function Osebe() {
         if (!Array.isArray(d)) {
           getSkupaj(d.skupaj ?? 0)
         } else {
-          fetch(`${API}/api/stats`).then(r => r.json()).then(s => getSkupaj(s.osebe ?? rows.length)).catch(() => getSkupaj(rows.length))
+          cachedFetch('stats', `${API}/api/stats`).then(s => getSkupaj(s.osebe ?? rows.length)).catch(() => getSkupaj(rows.length))
         }
       })
       .catch(() => {})

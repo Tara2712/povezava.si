@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 import { API } from '../api'
+import { cachedFetch } from '../cache'
 
 function useDebounce(value, delay) {
   const [d, setD] = useState(value)
@@ -42,6 +43,7 @@ export default function Home() {
   const [stats, setStats]     = useState(null)
   const [lobCount, setLobCount] = useState(0)
   const [ovCount, setOvCount]   = useState(0)
+  const [homeLoading, setHomeLoading] = useState(true)
   const navigate = useNavigate()
   const inputRef = useRef(null)
   const dq = useDebounce(query, 280)
@@ -49,15 +51,21 @@ export default function Home() {
   const top = [...topPoslovnezi.slice(0, 2), ...topAkademiki.slice(0, 2)]
 
   useEffect(() => {
-    fetch(`${API}/osebe?limit=4&tip=poslovnez`).then(r => r.json()).then(d => setTopPoslovnezi(Array.isArray(d) ? d : (d.osebe ?? []))).catch(() => {})
-    fetch(`${API}/akademiki?limit=4`).then(r => r.json()).then(d => setTopAkademiki(Array.isArray(d) ? d : (d.osebe ?? []))).catch(() => {})
-    fetch(`${API}/clanki?limit=3`).then(r => r.json()).then(d => {
-      const arr = Array.isArray(d) ? d : (d.clanki ?? [])
-      setClanki(arr.slice(0, 3))
-    }).catch(() => {})
-    fetch(`${API}/stats`).then(r => r.json()).then(setStats).catch(() => {})
-    fetch(`${API}/lobisti?limit=1`).then(r => r.json()).then(d => setLobCount(d.skupaj ?? 0)).catch(() => {})
-    fetch(`${API}/ovadeni?limit=1`).then(r => r.json()).then(d => setOvCount(d.skupaj ?? 0)).catch(() => {})
+    Promise.all([
+      cachedFetch('poslovnezi', `${API}/osebe?limit=4&tip=poslovnez`),
+      cachedFetch('akademiki',  `${API}/akademiki?limit=4`),
+      cachedFetch('clanki3',    `${API}/clanki?limit=3`),
+      cachedFetch('stats',      `${API}/stats`),
+      cachedFetch('lobCount',   `${API}/lobisti?limit=1`),
+      cachedFetch('ovCount',    `${API}/ovadeni?limit=1`),
+    ]).then(([p, a, c, s, l, o]) => {
+      setTopPoslovnezi(Array.isArray(p) ? p : (p.osebe ?? []))
+      setTopAkademiki(Array.isArray(a) ? a : (a.osebe ?? []))
+      setClanki((Array.isArray(c) ? c : (c.clanki ?? [])).slice(0, 3))
+      setStats(s)
+      setLobCount(l.skupaj ?? 0)
+      setOvCount(o.skupaj ?? 0)
+    }).catch(() => {}).finally(() => setHomeLoading(false))
   }, [])
 
   useEffect(() => {
@@ -142,24 +150,34 @@ export default function Home() {
         </div>
 
         {/* ── STATS BAR ── */}
-        {stats && (
-          <div className="hd-stats-bar">
-            <div className="hd-stat">
-              <span className="hd-stat-num">{stats.osebe.toLocaleString('sl-SI')}</span>
-              <span className="hd-stat-lbl">oseb v bazi</span>
-            </div>
-            <div className="hd-stat-sep" />
-            <div className="hd-stat">
-              <span className="hd-stat-num">{stats.podjetja.toLocaleString('sl-SI')}</span>
-              <span className="hd-stat-lbl">podjetij &amp; org.</span>
-            </div>
-            <div className="hd-stat-sep" />
-            <div className="hd-stat">
-              <span className="hd-stat-num">{stats.povezave.toLocaleString('sl-SI')}</span>
-              <span className="hd-stat-lbl">poslovnih povezav</span>
-            </div>
-          </div>
-        )}
+        <div className="hd-stats-bar">
+          {homeLoading ? (
+            <>
+              <div className="hd-stat"><span className="skeleton sk-num"/><span className="skeleton sk-lbl"/></div>
+              <div className="hd-stat-sep"/>
+              <div className="hd-stat"><span className="skeleton sk-num"/><span className="skeleton sk-lbl"/></div>
+              <div className="hd-stat-sep"/>
+              <div className="hd-stat"><span className="skeleton sk-num"/><span className="skeleton sk-lbl"/></div>
+            </>
+          ) : stats ? (
+            <>
+              <div className="hd-stat">
+                <span className="hd-stat-num">{stats.osebe.toLocaleString('sl-SI')}</span>
+                <span className="hd-stat-lbl">oseb v bazi</span>
+              </div>
+              <div className="hd-stat-sep"/>
+              <div className="hd-stat">
+                <span className="hd-stat-num">{stats.podjetja.toLocaleString('sl-SI')}</span>
+                <span className="hd-stat-lbl">podjetij &amp; org.</span>
+              </div>
+              <div className="hd-stat-sep"/>
+              <div className="hd-stat">
+                <span className="hd-stat-num">{stats.povezave.toLocaleString('sl-SI')}</span>
+                <span className="hd-stat-lbl">poslovnih povezav</span>
+              </div>
+            </>
+          ) : null}
+        </div>
 
         {/* ── CONTENT ── */}
         <div className="hd-body">
@@ -189,8 +207,30 @@ export default function Home() {
 
           {!isSearching && (
             <>
+              {/* Skeleton za 3 boxe */}
+              {homeLoading && (
+                <div className="hd-grid3">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="hd-card3">
+                      <div className="hd-card3-head"><span className="skeleton" style={{width:120,height:14,display:'inline-block'}}/></div>
+                      <div className="hd-card3-list">
+                        {[0,1,2,3].map(j => (
+                          <div key={j} className="hd-row-item" style={{pointerEvents:'none'}}>
+                            <span className="skeleton" style={{width:32,height:32,borderRadius:'50%',flexShrink:0}}/>
+                            <div className="hd-row-body">
+                              <span className="skeleton" style={{width:120,height:12,display:'block',marginBottom:4}}/>
+                              <span className="skeleton" style={{width:80,height:10,display:'block'}}/>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* 3-column grid */}
-              <div className="hd-grid3">
+              {!homeLoading && <div className="hd-grid3">
 
                 {/* NAJVEČ POVEZAV */}
                 <div className="hd-card3">
@@ -281,7 +321,7 @@ export default function Home() {
                   </div>
                 </div>
 
-              </div>
+              </div>}
 
             </>
           )}

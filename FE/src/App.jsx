@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
 import './App.css'
+import { API } from './api'
 import Iskanje from './pages/Home'
 import Oseba from './pages/Oseba'
 import Podjetje from './pages/Podjetje'
@@ -12,6 +14,9 @@ import Asistent from './pages/Asistent'
 import OsebeList from './pages/Osebe'
 
 export default function App() {
+  // Probudi Render takoj ob zagonu — cold start se začne preden uporabnik klikne
+  useEffect(() => { fetch(`${API}/stats`).catch(() => {}) }, [])
+
   return (
     <BrowserRouter>
       <Routes>
