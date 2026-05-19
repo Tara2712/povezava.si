@@ -58,7 +58,10 @@ export default function Mediji() {
     if (dq) params.set('q', dq)
     fetch(`${API}/clanki?${params}`)
       .then(r => r.json())
-      .then(d => setData({ skupaj: d.skupaj ?? 0, clanki: d.clanki ?? [] }))
+      .then(d => {
+        const clanki = Array.isArray(d) ? d : (d.clanki ?? [])
+        setData({ skupaj: d.skupaj ?? clanki.length, clanki })
+      })
       .catch(() => setData({ skupaj: 0, clanki: [] }))
       .finally(() => setLoading(false))
   }, [dq])
