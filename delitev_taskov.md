@@ -60,3 +60,11 @@
 [X] vzpostavitev FE na vercel
 [] 6 degrees of seperation 
     [] model za povezovanje med podjetji, osebami, regijami, mediji,...
+    [] razširi na osebe--podjetja, osebe-osebe,..
+    [] Ai model za iskanje
+[] Scrapanje člankov
+[] Ustvari piškote
+[] Testiranje backend
+[] Dokumentiranje Jira
+[] Popravi in dopolni dokumentacijo
+[] Responsive ui za mobilne naprave
