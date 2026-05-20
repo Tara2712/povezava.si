@@ -12,6 +12,8 @@ import Mediji from './pages/Mediji'
 import Pot from './pages/Pot'
 import Asistent from './pages/Asistent'
 import OsebeList from './pages/Osebe'
+import MojProfil from './pages/MojProfil'
+import PodjetjaList from './pages/Podjetja'
 import Login from './pages/Login'
 import Register from './pages/Register'
 
@@ -23,12 +25,14 @@ function PrivateRoutes() {
         <Route path="/oseba/:id" element={<Oseba />} />
         <Route path="/osebe" element={<OsebeList />} />
         <Route path="/podjetje/:id" element={<Podjetje />} />
+        <Route path="/podjetja" element={<PodjetjaList />} />
         <Route path="/omrezje/:id" element={<Omrezje />} />
         <Route path="/lobisti" element={<Lobisti />} />
         <Route path="/ovadeni" element={<Ovadeni />} />
         <Route path="/mediji" element={<Mediji />} />
         <Route path="/pot" element={<Pot />} />
         <Route path="/asistent" element={<Asistent />} />
+        <Route path="/profil" element={<MojProfil />} />
       </Routes>
     </PrivateRoute>
   )

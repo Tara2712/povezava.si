@@ -1,11 +1,14 @@
 *, *::before, *::after { box-sizing: border-box; }
 
+html { overflow-x: hidden; }
+
 body {
   margin: 0;
   font-family: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
   background: #fff;
   color: #111827;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 #root { min-height: 100vh; }
