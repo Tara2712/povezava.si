@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import CompareFloat from './CompareFloat'
 
 const NAV_LINKS = [
   { to: '/',         key: 'iskanje',  label: 'Iskanje' },
@@ -153,6 +154,8 @@ export default function Layout({ children }) {
       <main className="app-content">
         {children}
       </main>
+
+      <CompareFloat />
 
       <footer className="site-footer">
         <div className="site-footer-inner">

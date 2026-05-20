@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
-import { useSavedPersons, useRecentlyViewed } from '../hooks/usePersonStorage'
+import { useSavedPersons, useRecentlyViewed, useComparison } from '../hooks/usePersonStorage'
 import { API } from '../api'
 
 function fmtDate(d) {
@@ -21,6 +21,7 @@ export default function Oseba() {
   const [povFilter, setPovFilter] = useState('')
   const { toggle, isSaved } = useSavedPersons()
   const { track } = useRecentlyViewed()
+  const { candidate, select: selectForCompare, clear: clearCompare } = useComparison()
 
   useEffect(() => {
     fetch(`${API}/osebe/${id}`)
@@ -71,6 +72,22 @@ export default function Oseba() {
                 </svg>
                 {isSaved(data.id) ? 'Shranjeno' : 'Shrani'}
               </button>
+              {candidate && candidate.id !== data.id ? (
+                <Link
+                  className="prof-btn prof-btn-compare"
+                  to={`/primerjava?a=${candidate.id}&b=${data.id}`}
+                  onClick={clearCompare}
+                >
+                  ⇄ Primerjaj z {candidate.ime} {candidate.priimek}
+                </Link>
+              ) : (
+                <button
+                  className={`prof-btn prof-btn-compare-pick${candidate?.id === data.id ? ' active' : ''}`}
+                  onClick={() => candidate?.id === data.id ? clearCompare() : selectForCompare(data)}
+                >
+                  ⇄ {candidate?.id === data.id ? 'Prekliči primerjavo' : 'Primerjaj'}
+                </button>
+              )}
             </div>
           </div>
         </div>
