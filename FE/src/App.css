@@ -3208,6 +3208,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 14px;
+  align-items: stretch;
 }
 .osebe-card {
   display: flex;
@@ -3244,29 +3245,43 @@
 .osebe-card-wrap {
   display: flex;
   flex-direction: column;
-  position: relative;
 }
 .osebe-card-wrap .osebe-card {
+  flex: 1;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   border-bottom: none;
 }
-.osebe-card-omrezje {
-  display: block;
-  text-align: center;
-  padding: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #4f46e5;
-  text-decoration: none;
-  background: #eef2ff;
+.osebe-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   border: 1px solid #c7d2fe;
   border-top: none;
   border-bottom-left-radius: 14px;
   border-bottom-right-radius: 14px;
+  overflow: hidden;
+}
+.osebe-card-omrezje,
+.osebe-card-ai {
+  display: block;
+  text-align: center;
+  padding: 7px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
   transition: background 0.15s;
 }
-.osebe-card-omrezje:hover { background: #e0e7ff; }
+.osebe-card-omrezje {
+  color: #374151;
+  background: #f3f4f6;
+  border-right: 1px solid #c7d2fe;
+}
+.osebe-card-omrezje:hover { background: #e5e7eb; }
+.osebe-card-ai {
+  color: #4f46e5;
+  background: #eef2ff;
+}
+.osebe-card-ai:hover { background: #e0e7ff; }
 
 .osebe-pagination {
   display: flex;
