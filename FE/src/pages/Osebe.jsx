@@ -178,13 +178,10 @@ export default function Osebe() {
                       </div>
                     </div>
                   </button>
-                  <Link
-                    className="osebe-card-omrezje"
-                    to={`/omrezje/${o.id}`}
-                    onClick={e => e.stopPropagation()}
-                  >
-                    Omrežje →
-                  </Link>
+                  <div className="osebe-card-actions">
+                    <Link className="osebe-card-omrezje" to={`/omrezje/${o.id}`}>Omrežje →</Link>
+                    <Link className="osebe-card-ai" to={`/asistent?q=${encodeURIComponent(name)}`}>Vprašaj AI ✦</Link>
+                  </div>
                 </div>
               )
             })}
