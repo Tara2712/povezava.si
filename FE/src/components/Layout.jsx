@@ -39,8 +39,7 @@ export default function Layout({ children }) {
       <header className="topnav">
         <div className="topnav-inner">
           <Link to="/" className="topnav-brand">
-            <div className="topnav-brand-icon" />
-            <span className="topnav-brand-name">Povezava.si</span>
+            <img src="/logo.png" alt="Povezave.si" className="topnav-logo-img" />
           </Link>
 
           <nav className="topnav-links">
@@ -109,8 +108,7 @@ export default function Layout({ children }) {
           {/* Brand */}
           <div className="sf-brand">
             <div className="sf-brand-row">
-              <div className="topnav-brand-icon sf-icon" />
-              <span className="sf-brand-name">Povezava.si</span>
+              <img src="/logo.png" alt="Povezave.si" className="sf-logo-img" />
             </div>
             <p className="sf-tagline">
               Zemljevid slovenskega poslovnega omrežja iz javno dostopnih podatkov.
