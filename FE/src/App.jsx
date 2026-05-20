@@ -10,7 +10,7 @@ import Mediji from './pages/Mediji'
 import Pot from './pages/Pot'
 import Asistent from './pages/Asistent'
 import OsebeList from './pages/Osebe'
-import Zemljevid from './pages/zemljevid'
+import Zemljevid from './pages/Zemljevid'
 
 export default function App() {
   return (
