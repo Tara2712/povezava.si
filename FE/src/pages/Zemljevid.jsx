@@ -13,6 +13,8 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './zemljevid.css'
 
+import Layout from '../components/Layout'
+
 import icon from 'leaflet/dist/images/marker-icon.png'
 import iconShadow from 'leaflet/dist/images/marker-shadow.png'
 
@@ -26,7 +28,8 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon
 
 const API_URL = import.meta.env.VITE_API_URL
-//const API_URL = "http://localhost:3000/podjetjaVsa"
+// Naredi si .env.local file in not daj: VITE_API_URL=https://povezava-si.onrender.com/podjetjaVsa
+// const API_URL = "http://localhost:3000/podjetjaVsa"
 
 const SLOVENIA_CENTER = [46.1512, 14.9955]
 
@@ -74,10 +77,9 @@ export default function Mapa() {
           }))
 
         setCompanies(validCompanies)
-        setLoading(false)
-
       } catch (err) {
         console.error(err)
+      } finally {
         setLoading(false)
       }
     }
@@ -99,24 +101,25 @@ export default function Mapa() {
     })
   }
 
-  return (
+return (
+  <Layout>
     <div
+      className="map-page"
       style={{
-        display: 'flex',
-        width: '100vw',
-        height: '100vh',
-        overflow: 'hidden'
+        position: 'relative',
+        height: '100%',
+        width: '100%'
       }}
     >
-      {/* MAPA */}
-      <div style={{ flex: 1 }}>
+      {/* MAPA (VEDNO POLNI CELOTEN PROSTOR) */}
+      <div style={{ height: '100%', width: '100%' }}>
         <MapContainer
           center={SLOVENIA_CENTER}
           zoom={8}
           minZoom={8}
           maxZoom={18}
           maxBounds={SLOVENIA_BOUNDS}
-          style={{ width: '100%', height: '100%' }}
+          style={{ height: '100%', width: '100%' }}
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -149,16 +152,21 @@ export default function Mapa() {
         </MapContainer>
       </div>
 
-      {/* DESNI PANEL */}
+      {/* DESNI PANEL (OVERLAY!) */}
       {selectedCompany && (
         <div
           style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
             width: '420px',
+            height: '100%',
             background: '#fff',
             borderLeft: '1px solid #e2e8f0',
             overflowY: 'auto',
             padding: '24px',
-            boxShadow: '-8px 0 25px rgba(0,0,0,0.1)'
+            boxShadow: '-8px 0 25px rgba(0,0,0,0.15)',
+            zIndex: 1000
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -228,5 +236,6 @@ export default function Mapa() {
         </div>
       )}
     </div>
-  )
+  </Layout>
+)
 }
