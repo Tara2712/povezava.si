@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const NAV_LINKS = [
   { to: '/',       key: 'iskanje', label: 'Iskanje' },
@@ -22,7 +23,14 @@ const REGISTRI = [
 
 export default function Layout({ children }) {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [regOpen, setRegOpen] = useState(false)
+
+  async function handleLogout() {
+    await logout()
+    navigate('/login')
+  }
 
   const activeKey =
     pathname === '/' ? 'iskanje' :
@@ -94,6 +102,11 @@ export default function Layout({ children }) {
               </svg>
               AI Asistent
             </Link>
+            <div className="topnav-ai-divider" />
+            <div className="topnav-user">
+              <span className="topnav-user-name">{user?.displayName || user?.email}</span>
+              <button className="topnav-logout-btn" onClick={handleLogout}>Odjava</button>
+            </div>
           </nav>
         </div>
       </header>
