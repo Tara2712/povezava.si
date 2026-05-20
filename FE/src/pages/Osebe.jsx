@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 import { API } from '../api'
@@ -162,21 +162,30 @@ export default function Osebe() {
             {osebe.map(o => {
               const name = `${o.ime} ${o.priimek}`
               return (
-                <button key={o.id} className="osebe-card" onClick={() => navigate(`/oseba/${o.id}`)}>
-                  <Avatar name={name} size="lg" foto={o.fotografija_url} />
-                  <div className="osebe-card-body">
-                    <div className="osebe-card-name">{name}</div>
-                    {o.naziv && <div className="osebe-card-sub">{o.naziv}</div>}
-                    {o.institucija && <div className="osebe-card-org">{o.institucija}</div>}
-                    <div className="osebe-card-conn">
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                      </svg>
-                      {o.stevilo_povezav} {o.stevilo_povezav == 1 ? 'povezava' : 'povezav'}
+                <div key={o.id} className="osebe-card-wrap">
+                  <button className="osebe-card" onClick={() => navigate(`/oseba/${o.id}`)}>
+                    <Avatar name={name} size="lg" foto={o.fotografija_url} />
+                    <div className="osebe-card-body">
+                      <div className="osebe-card-name">{name}</div>
+                      {o.naziv && <div className="osebe-card-sub">{o.naziv}</div>}
+                      {o.institucija && <div className="osebe-card-org">{o.institucija}</div>}
+                      <div className="osebe-card-conn">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                        {o.stevilo_povezav} {o.stevilo_povezav == 1 ? 'povezava' : 'povezav'}
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                  <Link
+                    className="osebe-card-omrezje"
+                    to={`/omrezje/${o.id}`}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    Omrežje →
+                  </Link>
+                </div>
               )
             })}
           </div>

@@ -545,7 +545,30 @@
   margin-bottom: 4px;
 }
 .profile-info .prof-sub { font-size: 14px; color: #6b7280; margin-bottom: 3px; }
-.profile-info .prof-updated { font-size: 12px; color: #9ca3af; }
+.profile-info .prof-updated { font-size: 12px; color: #9ca3af; margin-bottom: 10px; }
+.prof-action-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.prof-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+.prof-btn-network {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+.prof-btn-network:hover { background: #e5e7eb; }
+.prof-btn-ai {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #fff;
+  border: none;
+}
+.prof-btn-ai:hover { opacity: 0.88; box-shadow: 0 2px 8px rgba(79,70,229,0.3); }
 .profile-details {
   border-top: 1px solid #f3f4f6;
   padding-top: 14px;
@@ -587,25 +610,6 @@
 }
 .conn-tag-green { background: #d1fae5; color: #065f46; }
 
-.open-network-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 13px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #fff;
-  font-size: 14px;
-  color: #374151;
-  cursor: pointer;
-  margin-top: 10px;
-  text-decoration: none;
-  font-family: inherit;
-  transition: background 0.15s;
-}
-.open-network-btn:hover { background: #f9fafb; }
 
 .map-main { flex: 1; position: relative; overflow: hidden; }
 
@@ -3237,6 +3241,32 @@
   font-weight: 500;
   margin-top: 4px;
 }
+.osebe-card-wrap {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.osebe-card-wrap .osebe-card {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: none;
+}
+.osebe-card-omrezje {
+  display: block;
+  text-align: center;
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #4f46e5;
+  text-decoration: none;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-top: none;
+  border-bottom-left-radius: 14px;
+  border-bottom-right-radius: 14px;
+  transition: background 0.15s;
+}
+.osebe-card-omrezje:hover { background: #e0e7ff; }
 
 .osebe-pagination {
   display: flex;

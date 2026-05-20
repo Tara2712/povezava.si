@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 import { API } from '../api'
@@ -182,6 +182,7 @@ function HitroIskanje() {
 }
 
 export default function Asistent() {
+  const [searchParams] = useSearchParams()
   const [tab, setTab] = useState('ai')
   const [messages, setMessages] = useState([
     {
@@ -190,7 +191,7 @@ export default function Asistent() {
       vir: null
     }
   ])
-  const [input, setInput]     = useState('')
+  const [input, setInput]     = useState(() => searchParams.get('q') ?? '')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
   const inputRef  = useRef(null)

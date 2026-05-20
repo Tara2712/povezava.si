@@ -45,6 +45,10 @@ export default function Oseba() {
             {data.zadnja_posodobitev && (
               <p className="prof-updated">Zadnja posodobitev: {fmtDate(data.zadnja_posodobitev)}</p>
             )}
+            <div className="prof-action-btns">
+              <Link className="prof-btn prof-btn-network" to={`/omrezje/${id}`}>Odpri v omrežju ↗</Link>
+              <Link className="prof-btn prof-btn-ai" to={`/asistent?q=${encodeURIComponent(fullName)}`}>Vprašaj AI ✦</Link>
+            </div>
           </div>
         </div>
 
@@ -113,10 +117,6 @@ export default function Oseba() {
       ))}
 
       {data.povezave?.length === 0 && <p className="empty-msg">Ni znanih povezav</p>}
-
-      <Link className="open-network-btn" to={`/omrezje/${id}`}>
-        Odpri v omrežju ↗
-      </Link>
 
       {clanki.length > 0 && (
         <>
