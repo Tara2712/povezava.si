@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
+import { useSearchHistory } from '../hooks/usePersonStorage'
 import { API } from '../api'
 
 function useDebounce(value, delay) {
@@ -45,6 +46,7 @@ export default function Home() {
   const navigate = useNavigate()
   const inputRef = useRef(null)
   const dq = useDebounce(query, 280)
+  const { track: trackSearch } = useSearchHistory()
 
   const top = [...topPoslovnezi.slice(0, 2), ...topAkademiki.slice(0, 2)]
 
@@ -71,6 +73,7 @@ export default function Home() {
   }, [dq])
 
   function go(item) {
+    trackSearch(query)
     if (item.tip === 'oseba') navigate(`/oseba/${item.id}`)
     else navigate(`/podjetje/${item.id}`)
   }
@@ -81,6 +84,7 @@ export default function Home() {
 
   function handleSearch() {
     if (query.trim()) {
+      trackSearch(query)
       navigate(`/osebe?q=${encodeURIComponent(query.trim())}`)
     }
   }

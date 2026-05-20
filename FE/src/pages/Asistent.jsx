@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
@@ -193,10 +193,12 @@ export default function Asistent() {
   ])
   const [input, setInput]     = useState(() => searchParams.get('q') ?? '')
   const [loading, setLoading] = useState(false)
-  const bottomRef = useRef(null)
-  const inputRef  = useRef(null)
+  const bottomRef    = useRef(null)
+  const inputRef     = useRef(null)
+  const initialMount = useRef(true)
 
   useEffect(() => {
+    if (initialMount.current) { initialMount.current = false; return }
     if (tab === 'ai') bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, tab])
 

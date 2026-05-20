@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
-
+import { useSavedPersons, useRecentlyViewed } from '../hooks/usePersonStorage'
 import { API } from '../api'
 
 function fmtDate(d) {
@@ -19,11 +19,13 @@ export default function Oseba() {
   const [error, setError] = useState(null)
   const [clanki, setClanki] = useState([])
   const [povFilter, setPovFilter] = useState('')
+  const { toggle, isSaved } = useSavedPersons()
+  const { track } = useRecentlyViewed()
 
   useEffect(() => {
     fetch(`${API}/osebe/${id}`)
       .then(r => { if (!r.ok) throw new Error('Oseba ni najdena'); return r.json() })
-      .then(d => { setData(d); setPovFilter('') })
+      .then(d => { setData(d); setPovFilter(''); track(d) })
       .catch(e => setError(e.message))
     fetch(`${API}/osebe/${id}/clanki`)
       .then(r => r.json()).then(setClanki).catch(() => {})
@@ -59,6 +61,16 @@ export default function Oseba() {
             <div className="prof-action-btns">
               <Link className="prof-btn prof-btn-network" to={`/omrezje/${id}`}>Odpri v omrežju ↗</Link>
               <Link className="prof-btn prof-btn-ai" to={`/asistent?q=${encodeURIComponent(fullName)}`}>Vprašaj AI ✦</Link>
+              <button
+                className={`prof-btn prof-btn-save${isSaved(data.id) ? ' saved' : ''}`}
+                onClick={() => toggle(data)}
+                title={isSaved(data.id) ? 'Odstrani iz shranjenih' : 'Shrani osebo'}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={isSaved(data.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                </svg>
+                {isSaved(data.id) ? 'Shranjeno' : 'Shrani'}
+              </button>
             </div>
           </div>
         </div>

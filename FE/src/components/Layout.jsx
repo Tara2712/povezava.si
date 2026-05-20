@@ -3,9 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const NAV_LINKS = [
-  { to: '/',       key: 'iskanje', label: 'Iskanje' },
-  { to: '/osebe',  key: 'osebe',   label: 'Seznam oseb' },
-  { to: '/mediji', key: 'mediji',  label: 'V medijih' },
+  { to: '/',         key: 'iskanje',  label: 'Iskanje' },
+  { to: '/osebe',    key: 'osebe',    label: 'Seznam oseb' },
+  { to: '/podjetja', key: 'podjetja', label: 'Podjetja' },
+  { to: '/mediji',   key: 'mediji',   label: 'V medijih' },
 ]
 
 const REGISTRI = [
@@ -26,6 +27,7 @@ export default function Layout({ children }) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const [regOpen, setRegOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   async function handleLogout() {
     await logout()
@@ -35,6 +37,7 @@ export default function Layout({ children }) {
   const activeKey =
     pathname === '/' ? 'iskanje' :
     pathname.startsWith('/osebe') ? 'osebe' :
+    pathname.startsWith('/podjetja') ? 'podjetja' :
     pathname.startsWith('/asistent') ? 'asistent' :
     pathname.startsWith('/lobisti') ? 'lobisti' :
     pathname.startsWith('/ovadeni') ? 'ovadeni' :
@@ -49,6 +52,10 @@ export default function Layout({ children }) {
           <Link to="/" className="topnav-brand">
             <img src="/logo.png" alt="Povezave.si" className="topnav-logo-img" />
           </Link>
+
+          <button className="topnav-hamburger" onClick={() => setMobileOpen(o => !o)} aria-label="Meni">
+            <span /><span /><span />
+          </button>
 
           <nav className="topnav-links">
             {NAV_LINKS.map(item => (
@@ -104,10 +111,42 @@ export default function Layout({ children }) {
             </Link>
             <div className="topnav-ai-divider" />
             <div className="topnav-user">
-              <span className="topnav-user-name">{user?.displayName || user?.email}</span>
+              <Link to="/profil" className="topnav-user-name">{user?.displayName || user?.email}</Link>
               <button className="topnav-logout-btn" onClick={handleLogout}>Odjava</button>
             </div>
           </nav>
+        </div>
+
+        {/* ── Mobile menu ── */}
+        <div className={`topnav-mobile-menu${mobileOpen ? ' open' : ''}`}>
+          {[...NAV_LINKS, { to: '/asistent', key: 'asistent', label: 'AI Asistent' }].map(item => (
+            <Link
+              key={item.key}
+              to={item.to}
+              className={`topnav-mobile-link${activeKey === item.key ? ' active' : ''}`}
+              onClick={() => setMobileOpen(false)}
+            >
+              {item.label}
+            </Link>
+          ))}
+          <div className="topnav-mobile-divider" />
+          {REGISTRI.map(item => (
+            <Link
+              key={item.key}
+              to={item.to}
+              className={`topnav-mobile-link${activeKey === item.key ? ' active' : ''}`}
+              onClick={() => setMobileOpen(false)}
+            >
+              {item.label}
+            </Link>
+          ))}
+          <div className="topnav-mobile-divider" />
+          <div className="topnav-mobile-user">
+            <Link to="/profil" className="topnav-mobile-user-name" onClick={() => setMobileOpen(false)}>
+              {user?.displayName || user?.email}
+            </Link>
+            <button className="topnav-logout-btn" onClick={() => { setMobileOpen(false); handleLogout() }}>Odjava</button>
+          </div>
         </div>
       </header>
 

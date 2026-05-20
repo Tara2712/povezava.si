@@ -2,7 +2,17 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
+import { useSavedPersons, useSearchHistory } from '../hooks/usePersonStorage'
 import { API } from '../api'
+
+function useDebounce(value, delay) {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
+}
 
 const TIP_OPTIONS = [
   { value: '', label: 'Vse' },
@@ -23,18 +33,20 @@ export default function Osebe() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const [tip, setTip]           = useState('')
-  const [q, setQ]               = useState(() => searchParams.get('q') ?? '')
-  const [minPov, setMinPov]     = useState('')
-  const [maxPov, setMaxPov]     = useState('')
-  const [lobisti, setLobisti]   = useState(false)
-  const [ovadeni, setOvadeni]   = useState(false)
-  const [sort, setSort]         = useState('povezave')
-  const [page, setPage]         = useState(0)
+  const [tip, setTip]       = useState('')
+  const [q, setQ]           = useState(() => searchParams.get('q') ?? '')
+  const [minPov, setMinPov] = useState('')
+  const [maxPov, setMaxPov] = useState('')
+  const [sort, setSort]     = useState('povezave')
+  const [page, setPage]     = useState(0)
 
-  const [osebe, setOsebe]       = useState([])
-  const [skupaj, getSkupaj]     = useState(0)
-  const [loading, setLoading]   = useState(false)
+  const [osebe, setOsebe]   = useState([])
+  const [skupaj, getSkupaj] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const { toggle, isSaved } = useSavedPersons()
+  const { track: trackSearch } = useSearchHistory()
+
+  const debouncedQ = useDebounce(q, 350)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -42,14 +54,12 @@ export default function Osebe() {
     params.set('limit', PAGE_SIZE)
     params.set('offset', page * PAGE_SIZE)
     params.set('sort', sort)
-    if (tip)    params.set('tip', tip)
-    if (q)      params.set('q', q)
+    if (tip)        params.set('tip', tip)
+    if (debouncedQ) params.set('q', debouncedQ)
     if (minPov) params.set('min_povezave', minPov)
     if (maxPov) params.set('max_povezave', maxPov)
-    if (lobisti) params.set('lobisti', '1')
-    if (ovadeni) params.set('ovadeni', '1')
 
-    fetch(`${API}/osebe?${params}`)
+    fetch(`${API}/api/osebe?${params}`)
       .then(r => r.json())
       .then(d => {
         const rows = Array.isArray(d) ? d : (d.osebe ?? [])
@@ -62,18 +72,14 @@ export default function Osebe() {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [tip, q, minPov, maxPov, lobisti, ovadeni, sort, page])
+  }, [tip, debouncedQ, minPov, maxPov, sort, page])
 
   useEffect(() => { load() }, [load])
-
-  function applyFilters() {
-    setPage(0)
-    load()
-  }
+  useEffect(() => { if (debouncedQ) trackSearch(debouncedQ) }, [debouncedQ])
 
   function reset() {
     setTip(''); setQ(''); setMinPov(''); setMaxPov('')
-    setLobisti(false); setOvadeni(false); setSort('povezave'); setPage(0)
+    setSort('povezave'); setPage(0)
   }
 
   const totalPages = Math.ceil(skupaj / PAGE_SIZE)
@@ -128,16 +134,6 @@ export default function Osebe() {
             />
           </div>
 
-          <label className="osebe-filter-label">Posebni registri</label>
-          <label className="osebe-checkbox-row">
-            <input type="checkbox" checked={lobisti} onChange={e => { setLobisti(e.target.checked); setPage(0) }} />
-            Lobisti (KPK)
-          </label>
-          <label className="osebe-checkbox-row">
-            <input type="checkbox" checked={ovadeni} onChange={e => { setOvadeni(e.target.checked); setPage(0) }} />
-            Kazensko ovadeni
-          </label>
-
           <button className="osebe-reset-btn" onClick={reset}>Ponastavi filtre</button>
         </aside>
 
@@ -163,6 +159,15 @@ export default function Osebe() {
               const name = `${o.ime} ${o.priimek}`
               return (
                 <div key={o.id} className="osebe-card-wrap">
+                  <button
+                    className={`osebe-card-save${isSaved(o.id) ? ' saved' : ''}`}
+                    onClick={e => { e.stopPropagation(); toggle(o) }}
+                    title={isSaved(o.id) ? 'Odstrani iz shranjenih' : 'Shrani'}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill={isSaved(o.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </button>
                   <button className="osebe-card" onClick={() => navigate(`/oseba/${o.id}`)}>
                     <Avatar name={name} size="lg" foto={o.fotografija_url} />
                     <div className="osebe-card-body">
@@ -180,7 +185,7 @@ export default function Osebe() {
                   </button>
                   <div className="osebe-card-actions">
                     <Link className="osebe-card-omrezje" to={`/omrezje/${o.id}`}>Omrežje →</Link>
-                    <Link className="osebe-card-ai" to={`/asistent?q=${encodeURIComponent(name)}`}>Vprašaj AI ✦</Link>
+                    <Link className="osebe-card-ai" to={`/asistent?q=${encodeURIComponent(name)}`}>AI ✦</Link>
                   </div>
                 </div>
               )
