@@ -166,7 +166,7 @@
   position: sticky;
   top: 0;
   z-index: 200;
-  height: 68px;
+  height: 80px;
   background: rgba(255,255,255,0.92);
   backdrop-filter: blur(14px);
   border-bottom: 1px solid #e5e7eb;
@@ -190,7 +190,7 @@
   margin-right: 8px;
 }
 .topnav-logo-img {
-  height: 54px;
+  height: 72px;
   width: auto;
   object-fit: contain;
 }
