@@ -12,6 +12,9 @@ const searchRoutes = require('./routes/search')
 const statsRoutes = require('./routes/stats')
 const lobistiRoutes = require('./routes/lobisti')
 const ovadeniRoutes = require('./routes/ovadeni')
+const bfsRoutes = require('./test6Degrees/bfs_nova')
+const geminiRoutes = require('./routes/gemini_ai')
+
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -35,9 +38,11 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Povezava.si backend deluje!' })
 })
 
-const bfs = require('./test6Degrees/bfs')
+bfsRoutes.setupRoutes(app)
+
+/* const bfs = require('./test6Degrees/bfs')
 bfs.nalogajGraf() 
-bfs.setupRoutes(app)
+bfs.setupRoutes(app) */
 
 app.use('/api/podjetja', podjetjaRoutes)
 app.use('/api/osebe', osebeRoutes)
@@ -50,6 +55,7 @@ app.use('/api/lobisti', lobistiRoutes)
 app.use('/lobisti', lobistiRoutes)
 app.use('/api/ovadeni', ovadeniRoutes)
 app.use('/ovadeni', ovadeniRoutes)
+geminiRoutes.setupRoutes(app)
 
 // GET /osebe — seznam oseb (limit, tip opcijski)
 app.get('/osebe', async (req, res) => {
