@@ -34,7 +34,10 @@ export default function Register() {
       {/* ── LEFT PANEL ── */}
       <div className="auth-left">
         <div className="auth-left-inner">
-          <img src="/logo.png" alt="Povezave.si" className="auth-left-logo" />
+          <div className="auth-left-brand">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" color="white"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span>Povezave.si</span>
+          </div>
           <h2 className="auth-left-title">Pridružite se omrežju</h2>
           <p className="auth-left-desc">
             Ustvarite račun in pridobite dostop do slovenskega poslovnega omrežja,
