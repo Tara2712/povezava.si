@@ -12,6 +12,7 @@ import L from 'leaflet'
 
 import 'leaflet/dist/leaflet.css'
 import './zemljevid.css'
+import Layout from '../components/Layout.jsx'
 
 import icon from 'leaflet/dist/images/marker-icon.png'
 import iconShadow from 'leaflet/dist/images/marker-shadow.png'
@@ -25,8 +26,8 @@ const DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon
 
-const API_URL = import.meta.env.VITE_API_URL
-// const API_URL = "http://localhost:3000/podjetjaVsa"
+const API_URL = import.meta.env.VITE_API_URL + '/kordinate'
+//const API_URL = "http://localhost:3000/kordinate"
 
 const SLOVENIA_CENTER = [46.1512, 14.9955]
 
@@ -34,6 +35,36 @@ const SLOVENIA_BOUNDS = [
   [45.42, 13.37],
   [46.88, 16.61]
 ]
+
+const FIELD_LABELS = {
+  ulica: "Ulica",
+  hisna_stevilka: "Hišna številka",
+  posta: "Kraj",
+  postna_stevilka: "Poštna številka",
+  maticna: "Matična številka",
+  drzava: "Država",
+  popolno_ime: "Ime podjetja",
+  pravna_oblika: "Pravna oblika",
+  registrski_organ: "Registrski organ"
+}
+
+const formatLabel = (key) => {
+  return FIELD_LABELS[key] || key
+}
+
+const formatValue = (key, value, company) => {
+  if (value === null || value === undefined || value === "") return "-"
+
+  if (key === "ulica") {
+    return `${company.ulica || ""}`.trim()
+  }
+
+  if (key === "posta") {
+    return `${company.posta || ""}`.trim()
+  }
+
+  return String(value)
+}
 
 function MapBoundsController() {
   const map = useMap()
@@ -100,133 +131,136 @@ export default function Mapa() {
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        width: '100vw',
-        height: '100vh',
-        overflow: 'hidden'
-      }}
-    >
-      {/* MAPA */}
-      <div style={{ flex: 1 }}>
-        <MapContainer
-          center={SLOVENIA_CENTER}
-          zoom={8}
-          minZoom={8}
-          maxZoom={18}
-          maxBounds={SLOVENIA_BOUNDS}
-          style={{ width: '100%', height: '100%' }}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap"
-          />
+    <Layout>
+      <div
+        style={{
+          display: 'flex',
+          width: '100%',
+          height: 'calc(100vh - 80px)',
+          overflow: 'hidden'
+        }}
+      >
 
-          <MapBoundsController />
-
-          <MarkerClusterGroup
-            chunkedLoading
-            spiderfyOnMaxZoom
-            showCoverageOnHover={false}
-            zoomToBoundsOnClick
-            iconCreateFunction={createClusterCustomIcon}
+        {/* MAPA */}
+        <div style={{ flex: 1 }}>
+          <MapContainer
+            center={SLOVENIA_CENTER}
+            zoom={8}
+            minZoom={8}
+            maxZoom={18}
+            maxBounds={SLOVENIA_BOUNDS}
+            style={{ width: '100%', height: '100%' }}
           >
-            {companies.map(company => (
-              <Marker
-                key={company.id}
-                position={[company.lat, company.lng]}
-                eventHandlers={{
-                  click: () => setSelectedCompany(company)
-                }}
-              >
-                <Popup>
-                  <strong>{company.popolno_ime}</strong>
-                </Popup>
-              </Marker>
-            ))}
-          </MarkerClusterGroup>
-        </MapContainer>
-      </div>
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="&copy; OpenStreetMap"
+            />
 
-      {/* DESNI PANEL */}
-      {selectedCompany && (
-        <div
-          style={{
-            width: '420px',
-            background: '#fff',
-            borderLeft: '1px solid #e2e8f0',
-            overflowY: 'auto',
-            padding: '24px',
-            boxShadow: '-8px 0 25px rgba(0,0,0,0.1)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <h2 style={{ margin: 0, fontSize: '22px' }}>
-              {selectedCompany.popolno_ime}
-            </h2>
+            <MapBoundsController />
 
-            <button
-              onClick={() => setSelectedCompany(null)}
-              style={{
-                border: 'none',
-                background: 'transparent',
-                fontSize: '22px',
-                cursor: 'pointer'
-              }}
+            <MarkerClusterGroup
+              chunkedLoading
+              spiderfyOnMaxZoom
+              showCoverageOnHover={false}
+              zoomToBoundsOnClick
+              iconCreateFunction={createClusterCustomIcon}
             >
-              ✕
-            </button>
-          </div>
-
-          <div style={{ marginTop: '20px' }}>
-            {Object.entries(selectedCompany).map(([key, value]) => (
-              <div
-                key={key}
-                style={{
-                  marginBottom: '14px',
-                  paddingBottom: '10px',
-                  borderBottom: '1px solid #f1f5f9'
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: '#64748b',
-                    marginBottom: '4px',
-                    textTransform: 'uppercase'
+              {companies.map(company => (
+                <Marker
+                  key={company.id}
+                  position={[company.lat, company.lng]}
+                  eventHandlers={{
+                    click: () => setSelectedCompany(company)
                   }}
                 >
-                  {key}
-                </div>
+                  <Popup>
+                    <strong>{company.popolno_ime}</strong>
+                  </Popup>
+                </Marker>
+              ))}
+            </MarkerClusterGroup>
+          </MapContainer>
+        </div>
 
-                <div style={{ fontSize: '14px' }}>
-                  {String(value)}
+        {/* DESNI PANEL */}
+        {selectedCompany && (
+          <div
+            style={{
+              width: '420px',
+              background: '#fff',
+              borderLeft: '1px solid #e2e8f0',
+              overflowY: 'auto',
+              padding: '24px',
+              boxShadow: '-8px 0 25px rgba(0,0,0,0.1)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <h2 style={{ margin: 0, fontSize: '22px' }}>
+                {selectedCompany.popolno_ime}
+              </h2>
+
+              <button
+                onClick={() => setSelectedCompany(null)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: '22px',
+                  cursor: 'pointer'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
+              {Object.entries(selectedCompany).map(([key, value]) => (
+                <div
+                  key={key}
+                  style={{
+                    marginBottom: '14px',
+                    paddingBottom: '10px',
+                    borderBottom: '1px solid #f1f5f9'
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: '#64748b',
+                      marginBottom: '4px',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    {formatLabel(key)}
+                  </div>
+
+                  <div style={{ fontSize: '14px' }}>
+                    {formatValue(key, value, selectedCompany)}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* LOADING */}
-      {loading && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 20,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: '#0f172a',
-            color: '#fff',
-            padding: '12px 24px',
-            borderRadius: '999px',
-            zIndex: 9999
-          }}
-        >
-          Nalaganje podjetij...
-        </div>
-      )}
-    </div>
+        {/* LOADING */}
+        {loading && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 90,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: '#0f172a',
+              color: '#fff',
+              padding: '12px 24px',
+              borderRadius: '999px',
+              zIndex: 9999
+            }}
+          >
+            Nalaganje podjetij...
+          </div>
+        )}
+      </div>
+    </Layout>
   )
 }

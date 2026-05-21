@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { Pool } = require('pg')
+const { routes } = require('../server')
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -60,35 +61,6 @@ router.get('/:maticna', async (req, res) => {
       return res.status(404).json({ error: 'Podjetje ni najdeno' })
     }
     res.json(result.rows[0])
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// GET /podjetjaVsa — vse informacije o podjetjih (za zemljevid)
-router.get('/podjetjaVsa', async (req, res) => {
-  try {
-
-    const result = await pool.query(`
-      SELECT 
-        d.id,
-        d.maticna,
-        d.popolno_ime,
-        d.pravna_oblika,
-        d.registrski_organ,
-        d.ulica,
-        d.hisna_stevilka,
-        d.naselje,
-        d.postna_stevilka,
-        d.posta,
-        d.drzava,
-        d.lat,
-        d.lng
-      FROM podjetja d
-    `)
-
-    res.json(result.rows)
-
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
