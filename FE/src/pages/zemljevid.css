@@ -31,3 +31,19 @@
   transform: scale(1.08);
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #0f172a; /* odstrani belo “špranjo” */
+}
+
+/* pomembno: odstrani default spacing */
+.leaflet-pane,
+.leaflet-map-pane {
+  background: transparent;
+}

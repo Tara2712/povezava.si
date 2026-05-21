@@ -34,7 +34,7 @@
     [x] geokodiranje lokacij
     [] filtriranje zemljevida
     [] iskanje po zemljevidu
-    [] popravi backend (preveč obremnjen server)
+    [x] popravi backend (preveč obremnjen server)
 [x] osnovna logika grafa
     [] popravi izgled - FE
     [] graf clustri

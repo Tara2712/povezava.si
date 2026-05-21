@@ -14,6 +14,7 @@ const lobistiRoutes = require('./routes/lobisti')
 const ovadeniRoutes = require('./routes/ovadeni')
 const bfsRoutes = require('./test6Degrees/bfs_nova')
 const geminiRoutes = require('./routes/gemini_ai')
+const kordinateRoutes = require('./routes/kordinate')
 
 
 const app = express()
@@ -55,6 +56,7 @@ app.use('/api/lobisti', lobistiRoutes)
 app.use('/lobisti', lobistiRoutes)
 app.use('/api/ovadeni', ovadeniRoutes)
 app.use('/ovadeni', ovadeniRoutes)
+app.use('/kordinate', kordinateRoutes)
 geminiRoutes.setupRoutes(app)
 
 // GET /osebe — seznam oseb (limit, tip opcijski)
@@ -156,34 +158,6 @@ app.get('/podjetja', async (req, res) => {
       LIMIT $1
     `, [limit])
     res.json(result.rows)
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// GET /podjetjaVsa — vse informacije o podjetjih (za zemljevid)
-app.get('/podjetjaVsa', async (req, res) => {
-  try {
-
-    const result = await pool.query(`
-      SELECT 
-        d.id,
-        d.maticna,
-        d.popolno_ime,
-        d.pravna_oblika,
-        d.registrski_organ,
-        d.ulica,
-        d.hisna_stevilka,
-        d.naselje,
-        d.postna_stevilka,
-        d.posta,
-        d.drzava,
-        d.lat,
-        d.lng
-      FROM podjetja d`)
-
-    res.json(result.rows)
-
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

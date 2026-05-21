@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 const NAV_LINKS = [
   { to: '/',       key: 'iskanje', label: 'Iskanje' },
   { to: '/osebe',  key: 'osebe',   label: 'Seznam oseb' },
+  { to: '/zemljevid', key: 'zemljevid', label: 'Zemljevid podjetij' },
   { to: '/mediji', key: 'mediji',  label: 'V medijih' },
 ]
 
@@ -27,6 +28,7 @@ export default function Layout({ children }) {
   const activeKey =
     pathname === '/' ? 'iskanje' :
     pathname.startsWith('/osebe') ? 'osebe' :
+    pathname.startsWith('/zemljevid') ? 'zemljevid' :
     pathname.startsWith('/asistent') ? 'asistent' :
     pathname.startsWith('/lobisti') ? 'lobisti' :
     pathname.startsWith('/ovadeni') ? 'ovadeni' :
