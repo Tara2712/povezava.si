@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useComparison, useSavedPersons } from '../hooks/usePersonStorage'
 import Avatar from './Avatar'
 import { API } from '../api'
 
 export default function CompareFloat() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { candidate, select, clear } = useComparison()
+
+  if (pathname.startsWith('/asistent') || pathname.startsWith('/primerjava')) return null
   const { saved } = useSavedPersons()
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
