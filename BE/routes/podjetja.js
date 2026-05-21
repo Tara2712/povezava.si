@@ -8,24 +8,44 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 })
 
-// GET vseh podjetij (z iskanjem)
+// GET vseh podjetij (z iskanjem, sortom, paginacijo)
 router.get('/', async (req, res) => {
   try {
-    const { q } = req.query
-    let result
+    const limit  = Math.min(parseInt(req.query.limit) || 40, 200)
+    const offset = parseInt(req.query.offset) || 0
+    const q      = req.query.q
+    const sort   = req.query.sort || 'povezave'
 
-    if (q) {
-      result = await pool.query(
-        'SELECT maticna, popolno_ime, posta, pravna_oblika, ulica, hisna_stevilka, postna_stevilka FROM podjetja WHERE popolno_ime ILIKE $1 LIMIT 20',
-        [`%${q}%`]
-      )
-    } else {
-      result = await pool.query(
-        'SELECT maticna, popolno_ime, posta, pravna_oblika, ulica, hisna_stevilka, postna_stevilka FROM podjetja LIMIT 20'
-      )
-    }
+    const params = []
+    const where  = []
+    if (q) { params.push(`%${q}%`); where.push(`LOWER(d.popolno_ime) LIKE LOWER($${params.length})`) }
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : ''
 
-    res.json(result.rows)
+    const orderBy =
+      sort === 'az' ? 'd.popolno_ime ASC' :
+      sort === 'za' ? 'd.popolno_ime DESC' :
+      'stevilo_povezav DESC'
+
+    const baseParams = [...params]
+    params.push(limit, offset)
+
+    const [result, countResult] = await Promise.all([
+      pool.query(`
+        SELECT d.id, d.maticna, d.popolno_ime, d.pravna_oblika, d.posta,
+          COUNT(p.id) AS stevilo_povezav
+        FROM podjetja d
+        LEFT JOIN povezave p ON p.podjetje_id = d.id
+        ${whereClause}
+        GROUP BY d.id
+        ORDER BY ${orderBy}
+        LIMIT $${params.length - 1} OFFSET $${params.length}
+      `, params),
+      pool.query(`
+        SELECT COUNT(*) FROM podjetja d ${whereClause}
+      `, baseParams)
+    ])
+
+    res.json({ skupaj: parseInt(countResult.rows[0].count), podjetja: result.rows })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
