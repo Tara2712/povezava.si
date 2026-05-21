@@ -12,6 +12,10 @@ const searchRoutes = require('./routes/search')
 const statsRoutes = require('./routes/stats')
 const lobistiRoutes = require('./routes/lobisti')
 const ovadeniRoutes = require('./routes/ovadeni')
+const bfsRoutes = require('./test6Degrees/bfs_nova')
+const geminiRoutes = require('./routes/gemini_ai')
+const kordinateRoutes = require('./routes/kordinate')
+
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -35,6 +39,12 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Povezava.si backend deluje!' })
 })
 
+bfsRoutes.setupRoutes(app)
+
+/* const bfs = require('./test6Degrees/bfs')
+bfs.nalogajGraf() 
+bfs.setupRoutes(app) */
+
 app.use('/api/podjetja', podjetjaRoutes)
 app.use('/api/osebe', osebeRoutes)
 app.use('/api/omrezje', omrezjeRoutes)
@@ -46,6 +56,8 @@ app.use('/api/lobisti', lobistiRoutes)
 app.use('/lobisti', lobistiRoutes)
 app.use('/api/ovadeni', ovadeniRoutes)
 app.use('/ovadeni', ovadeniRoutes)
+app.use('/kordinate', kordinateRoutes)
+geminiRoutes.setupRoutes(app)
 
 // GET /osebe — seznam oseb (limit, tip opcijski)
 app.get('/osebe', async (req, res) => {
@@ -185,39 +197,6 @@ app.get('/podjetja', async (req, res) => {
       LIMIT $1
     `, [limit])
     res.json(result.rows)
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// GET /podjetjaVsa — vse informacije o podjetjih (za zemljevid)
-app.get('/podjetjaVsa', async (req, res) => {
-  try {
-    const limit = req.query.limit ? parseInt(req.query.limit) : 50
-
-    const result = await pool.query(`
-      SELECT 
-        d.id,
-        d.maticna,
-        d.popolno_ime,
-        d.pravna_oblika,
-        d.registrski_organ,
-        d.ulica,
-        d.hisna_stevilka,
-        d.naselje,
-        d.postna_stevilka,
-        d.posta,
-        d.drzava,
-        COUNT(p.id) AS stevilo_povezav
-      FROM podjetja d
-      LEFT JOIN povezave p ON p.podjetje_id = d.id
-      GROUP BY d.id
-      ORDER BY stevilo_povezav DESC
-      LIMIT $1
-    `, [limit])
-
-    res.json(result.rows)
-
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
