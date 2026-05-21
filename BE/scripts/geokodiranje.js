@@ -69,51 +69,64 @@ async function geocodeCompany(company) {
 
 async function main() {
 
-  const result = await pool.query(`
-    SELECT
-      id,
-      popolno_ime,
-      ulica,
-      hisna_stevilka,
-      postna_stevilka,
-      posta
-    FROM podjetja
-    WHERE lat IS NULL
-    LIMIT 500
-  `)
+const result = await pool.query(`
+  SELECT
+    p.id,
+    p.maticna,
+    p.popolno_ime,
+    p.ulica,
+    p.hisna_stevilka,
+    p.postna_stevilka,
+    p.posta
+  FROM podjetja p
+  LEFT JOIN lokacija l
+    ON l.maticna = p.maticna
+  WHERE l.maticna IS NULL
+  LIMIT 500
+`)
 
   const companies = result.rows
 
-  console.log(
-    `Najdenih podjetij: ${companies.length}`
-  )
+  console.log(`Najdenih podjetij: ${companies.length}`)
 
   for (let i = 0; i < companies.length; i++) {
 
     const company = companies[i]
 
-    console.log(
-      `[${i + 1}/${companies.length}]`,
-      company.popolno_ime
-    )
+    console.log(`[${i + 1}/${companies.length}]`, company.popolno_ime)
 
-    const coords =
-      await geocodeCompany(company)
+    const existing = await pool.query(`
+      SELECT 1
+      FROM lokacija
+      WHERE maticna = $1
+      LIMIT 1
+    `, [company.maticna])
+
+    if (existing.rows.length > 0) {
+      console.log('SKIP (že obstaja v lokacija)')
+      continue
+    }
+
+    // 🔥 geocoding
+    const coords = await geocodeCompany(company)
 
     if (coords) {
 
+      // 🔥 shrani samo osnovne podatke
       await pool.query(`
-        UPDATE podjetja
-        SET lat = $1,
-            lng = $2
-        WHERE id = $3
+        INSERT INTO lokacija (
+          maticna,
+          lat,
+          lng
+        )
+        VALUES ($1, $2, $3)
       `, [
+        company.maticna,
         coords.lat,
-        coords.lng,
-        company.id
+        coords.lng
       ])
 
-      console.log('SHRANJENO')
+      console.log('SHRANJENO v lokacija')
     }
 
     await sleep(1200)
