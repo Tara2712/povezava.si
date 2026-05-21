@@ -3,15 +3,23 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import CompareFloat from './CompareFloat'
 
-const NAV_LINKS = [
-  { to: '/',         key: 'iskanje',  label: 'Iskanje' },
-  { to: '/osebe',    key: 'osebe',    label: 'Seznam oseb' },
-  { to: '/podjetja', key: 'podjetja', label: 'Podjetja' },
-  { to: '/mediji',   key: 'mediji',   label: 'V medijih' },
-  { to: '/',       key: 'iskanje', label: 'Iskanje' },
-  { to: '/osebe',  key: 'osebe',   label: 'Seznam oseb' },
-  { to: '/zemljevid', key: 'zemljevid', label: 'Zemljevid podjetij' },
-  { to: '/mediji', key: 'mediji',  label: 'V medijih' },
+const BAZA = [
+  {
+    to: '/osebe', key: 'osebe', label: 'Seznam oseb', desc: 'Iskanje po osebah',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  },
+  {
+    to: '/podjetja', key: 'podjetja', label: 'Podjetja', desc: 'Seznam organizacij',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+  },
+  {
+    to: '/zemljevid', key: 'zemljevid', label: 'Zemljevid podjetij', desc: 'Geografski prikaz',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 14 8 14s8-8.75 8-14a8 8 0 0 0-8-8z"/></svg>
+  },
+  {
+    to: '/mediji', key: 'mediji', label: 'V medijih', desc: 'Medijski arhiv',
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8z"/></svg>
+  },
 ]
 
 const REGISTRI = [
@@ -68,6 +76,7 @@ export default function Layout({ children }) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const [regOpen, setRegOpen] = useState(false)
+  const [bazaOpen, setBazaOpen] = useState(false)
 
   async function handleLogout() {
     await logout()
@@ -86,6 +95,7 @@ export default function Layout({ children }) {
     pathname.startsWith('/mediji') ? 'mediji' : 'iskanje'
 
   const regActive = activeKey === 'lobisti' || activeKey === 'ovadeni'
+  const bazaActive = ['osebe', 'podjetja', 'zemljevid', 'mediji'].includes(activeKey)
 
   return (
     <div className="app-layout">
@@ -96,15 +106,40 @@ export default function Layout({ children }) {
           </Link>
 
           <nav className="topnav-links">
-            {NAV_LINKS.map(item => (
-              <Link
-                key={item.key}
-                to={item.to}
-                className={`topnav-link${activeKey === item.key ? ' active' : ''}`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            <Link to="/" className={`topnav-link${activeKey === 'iskanje' ? ' active' : ''}`}>
+              Iskanje
+            </Link>
+
+            <div
+              className={`topnav-dropdown${bazaActive ? ' reg-active' : ''}`}
+              onMouseEnter={() => setBazaOpen(true)}
+              onMouseLeave={() => setBazaOpen(false)}
+            >
+              <button className={`topnav-link topnav-dropdown-btn${bazaActive ? ' active' : ''}`}>
+                Baza
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: 3, transition: 'transform 0.15s', transform: bazaOpen ? 'rotate(180deg)' : 'none' }}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {bazaOpen && (
+                <div className="topnav-dropdown-menu">
+                  {BAZA.map(item => (
+                    <Link
+                      key={item.key}
+                      to={item.to}
+                      className={`topnav-dropdown-item${activeKey === item.key ? ' active' : ''}`}
+                      onClick={() => setBazaOpen(false)}
+                    >
+                      <span className="topnav-dd-icon">{item.icon}</span>
+                      <span>
+                        <span className="topnav-dd-label">{item.label}</span>
+                        <span className="topnav-dd-desc">{item.desc}</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div
               className={`topnav-dropdown${regActive ? ' reg-active' : ''}`}
