@@ -3541,13 +3541,58 @@
   .topnav-links { display: none; }
   .topnav-inner { padding: 0 16px; }
   .app-content { padding-bottom: 72px; }
-  .cf-wrap { bottom: 76px; right: 16px; }
+  .cf-wrap { bottom: auto; top: 72px; right: 16px; }
 }
 
 /* Phone: hide footer */
 @media (max-width: 600px) {
   .site-footer { display: none; }
 }
+
+/* ── Več slide-up panel ── */
+.vec-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 1100;
+}
+@media (max-width: 900px) { .vec-overlay { display: block; } }
+.vec-panel {
+  position: absolute;
+  bottom: 64px; left: 0; right: 0;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 8px 0 24px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+}
+.vec-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px 8px;
+  font-size: 15px; font-weight: 600; color: #111827;
+}
+.vec-close {
+  background: none; border: none; font-size: 18px; color: #6b7280; cursor: pointer;
+  padding: 8px 12px; margin: -8px -12px; border-radius: 8px; line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.vec-section-label {
+  font-size: 11px; font-weight: 600; color: #9ca3af;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  padding: 10px 20px 4px;
+}
+.vec-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 20px;
+  font-size: 14px; font-weight: 500; color: #374151;
+  text-decoration: none; background: none; border: none;
+  width: 100%; cursor: pointer; transition: background 0.12s;
+}
+.vec-item:hover { background: #f9fafb; }
+.vec-item.active { color: #4f46e5; background: #ede9fe; }
+.vec-item-icon { color: #6b7280; display: flex; }
+.vec-item.active .vec-item-icon { color: #4f46e5; }
+.vec-logout { color: #ef4444; }
+.vec-logout .vec-item-icon { color: #ef4444; }
 
 /* ── Bottom navigation (tablet + phone) ── */
 .bottom-nav {
@@ -3619,6 +3664,21 @@
   border-radius: 16px; margin-bottom: 28px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
+.mp-logout-btn {
+  display: none;
+  align-items: center; gap: 7px;
+  margin-left: auto;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  color: #6b7280;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer; flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.mp-logout-btn:hover { background: #fef2f2; color: #ef4444; border-color: #fca5a5; }
+@media (max-width: 900px) { .mp-logout-btn { display: flex; } }
 .mp-avatar {
   width: 60px; height: 60px; border-radius: 50%; flex-shrink: 0;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);

@@ -35,26 +35,12 @@ const REGISTRI = [
   },
 ]
 
-// Bottom nav items (5 main destinations for mobile)
+// Bottom nav items (mobile/tablet)
 const BOTTOM_NAV = [
   {
     to: '/', key: 'iskanje', label: 'Iskanje',
     icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-  },
-  {
-    to: '/osebe', key: 'osebe', label: 'Osebe',
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-  },
-  {
-    to: '/podjetja', key: 'podjetja', label: 'Podjetja',
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-      <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
     </svg>
   },
   {
@@ -77,6 +63,7 @@ export default function Layout({ children }) {
   const { user, logout } = useAuth()
   const [regOpen, setRegOpen] = useState(false)
   const [bazaOpen, setBazaOpen] = useState(false)
+  const [vecOpen, setVecOpen] = useState(false)
 
   async function handleLogout() {
     await logout()
@@ -198,6 +185,32 @@ export default function Layout({ children }) {
 
       <CompareFloat />
 
+      {/* ── Več panel (slide-up) ── */}
+      {vecOpen && (
+        <div className="vec-overlay" onClick={() => setVecOpen(false)}>
+          <div className="vec-panel" onClick={e => e.stopPropagation()}>
+            <div className="vec-panel-head">
+              <span>Vse strani</span>
+              <button type="button" className="vec-close" onClick={() => setVecOpen(false)}>✕</button>
+            </div>
+            <div className="vec-section-label">Baza</div>
+            {BAZA.map(item => (
+              <Link key={item.key} to={item.to} className={`vec-item${activeKey === item.key ? ' active' : ''}`} onClick={() => setVecOpen(false)}>
+                <span className="vec-item-icon">{item.icon}</span>
+                <span className="vec-item-label">{item.label}</span>
+              </Link>
+            ))}
+            <div className="vec-section-label">Registri</div>
+            {REGISTRI.map(item => (
+              <Link key={item.key} to={item.to} className={`vec-item${activeKey === item.key ? ' active' : ''}`} onClick={() => setVecOpen(false)}>
+                <span className="vec-item-icon">{item.icon}</span>
+                <span className="vec-item-label">{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Mobile bottom navigation ── */}
       <nav className="bottom-nav">
         {BOTTOM_NAV.map(item => (
@@ -210,6 +223,17 @@ export default function Layout({ children }) {
             <span className="bottom-nav-label">{item.label}</span>
           </Link>
         ))}
+        <button
+          className={`bottom-nav-item${vecOpen ? ' active' : ''}`}
+          onClick={() => setVecOpen(v => !v)}
+        >
+          <span className="bottom-nav-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/>
+            </svg>
+          </span>
+          <span className="bottom-nav-label">Več</span>
+        </button>
       </nav>
 
       <footer className="site-footer">
