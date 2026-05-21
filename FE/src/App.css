@@ -3595,10 +3595,63 @@
 }
 .topnav-mobile-user-name { font-size: 13px; color: #6b7280; }
 
+/* Tablet: hamburger menu */
 @media (max-width: 900px) {
   .topnav-links { display: none; }
   .topnav-hamburger { display: flex; }
   .topnav-inner { padding: 0 16px; }
+}
+
+/* Phone: hide hamburger (bottom nav takes over), hide footer */
+@media (max-width: 600px) {
+  .topnav-hamburger { display: none; }
+  .topnav-mobile-menu { display: none !important; }
+  .app-content { padding-bottom: 72px; }
+  .site-footer { display: none; }
+}
+
+/* ── Bottom navigation (phones only) ── */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 64px;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  z-index: 300;
+  flex-direction: row;
+  align-items: stretch;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.07);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@media (max-width: 600px) {
+  .bottom-nav { display: flex; }
+}
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-decoration: none;
+  color: #9ca3af;
+  transition: color 0.15s;
+  padding: 8px 4px;
+}
+.bottom-nav-item.active {
+  color: #4f46e5;
+}
+.bottom-nav-item.active .bottom-nav-icon svg {
+  stroke: #4f46e5;
+}
+.bottom-nav-icon { display: flex; align-items: center; justify-content: center; }
+.bottom-nav-icon svg { stroke: #9ca3af; transition: stroke 0.15s; }
+.bottom-nav-item.active .bottom-nav-icon svg { stroke: #4f46e5; }
+.bottom-nav-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
 /* ── Nav user / logout ── */
