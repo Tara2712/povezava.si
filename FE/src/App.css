@@ -167,7 +167,7 @@
 .topnav {
   position: sticky;
   top: 0;
-  z-index: 200;
+  z-index: 1000;
   height: 68px;
   background: rgba(255,255,255,0.96);
   backdrop-filter: blur(14px);
