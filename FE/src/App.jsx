@@ -16,12 +16,14 @@ import MojProfil from './pages/MojProfil'
 import PodjetjaList from './pages/Podjetja'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Zemljevid from './pages/Zemljevid'
 
 function PrivateRoutes() {
   return (
     <PrivateRoute>
       <Routes>
         <Route path="/" element={<Iskanje />} />
+        <Route path="/zemljevid" element={<Zemljevid />} />
         <Route path="/oseba/:id" element={<Oseba />} />
         <Route path="/osebe" element={<OsebeList />} />
         <Route path="/podjetje/:id" element={<Podjetje />} />
