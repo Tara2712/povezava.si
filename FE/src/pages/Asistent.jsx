@@ -28,7 +28,7 @@ function Message({ msg }) {
         {msg.podatki && <DataLinks podatki={msg.podatki} />}
         {msg.vir && (
           <span className={`ai-msg-vir ${msg.vir === 'ollama' ? 'ai-vir-ollama' : 'ai-vir-sistem'}`}>
-            {msg.vir === 'ollama' ? '🤖 Ollama AI' : '💡 Sistem'}
+            {msg.vir === 'ollama' ? 'Ollama AI' : msg.vir === 'groq' ? 'Groq AI' : 'Sistem'}
           </span>
         )}
       </div>
@@ -212,7 +212,7 @@ export default function Asistent() {
       const r = await fetch(`${API}/ai/vprasaj`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vprasanje: q })
+        body: JSON.stringify({ vprasanje: q, history: messages.slice(-6) })
       })
       const data = await r.json()
       setMessages(prev => [...prev, {
@@ -238,9 +238,7 @@ export default function Asistent() {
         <div className="ai-header">
           <div>
             <h1 className="ai-title">
-              {tab === 'ai'
-                ? <><span className="ai-title-icon">🤖</span> AI Asistent</>
-                : <><span className="ai-title-icon">🔍</span> Hitro iskanje</>}
+              {tab === 'ai' ? 'AI Asistent' : 'Hitro iskanje'}
             </h1>
             <p className="ai-desc">
               {tab === 'ai'
@@ -248,14 +246,6 @@ export default function Asistent() {
                 : 'Klasično iskanje po osebah in podjetjih.'}
             </p>
           </div>
-          {tab === 'ai' && (
-            <div className="ai-badge-wrap">
-              <span className="ai-ollama-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
-                Ollama
-              </span>
-            </div>
-          )}
         </div>
 
         <div className="ai-tabs">
@@ -329,7 +319,7 @@ export default function Asistent() {
               </button>
             </div>
             <p className="ai-footer-note">
-              Lokalni AI: <a href="https://ollama.com" target="_blank" rel="noopener" className="ai-ollama-link">Ollama</a> (Mistral) · brez strežnika v oblaku
+              AI: <a href="https://ollama.com" target="_blank" rel="noopener" className="ai-ollama-link">Ollama</a> lokalno · <a href="https://groq.com" target="_blank" rel="noopener" className="ai-ollama-link">Groq</a> rezerva
             </p>
           </div>
         ) : (
