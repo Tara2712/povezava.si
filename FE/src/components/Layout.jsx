@@ -23,6 +23,42 @@ const REGISTRI = [
   },
 ]
 
+// Bottom nav items (5 main destinations for mobile)
+const BOTTOM_NAV = [
+  {
+    to: '/', key: 'iskanje', label: 'Iskanje',
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+  },
+  {
+    to: '/osebe', key: 'osebe', label: 'Osebe',
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  },
+  {
+    to: '/podjetja', key: 'podjetja', label: 'Podjetja',
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+      <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+    </svg>
+  },
+  {
+    to: '/asistent', key: 'asistent', label: 'AI',
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+    </svg>
+  },
+  {
+    to: '/profil', key: 'profil', label: 'Profil',
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+  },
+]
+
 export default function Layout({ children }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -40,6 +76,7 @@ export default function Layout({ children }) {
     pathname.startsWith('/osebe') ? 'osebe' :
     pathname.startsWith('/podjetja') ? 'podjetja' :
     pathname.startsWith('/asistent') ? 'asistent' :
+    pathname.startsWith('/profil') ? 'profil' :
     pathname.startsWith('/lobisti') ? 'lobisti' :
     pathname.startsWith('/ovadeni') ? 'ovadeni' :
     pathname.startsWith('/mediji') ? 'mediji' : 'iskanje'
@@ -63,7 +100,7 @@ export default function Layout({ children }) {
               <Link
                 key={item.key}
                 to={item.to}
-                className={`topnav-link${activeKey === item.key ? ' active' : ''}${item.accent ? ' topnav-link-ai' : ''}`}
+                className={`topnav-link${activeKey === item.key ? ' active' : ''}`}
               >
                 {item.label}
               </Link>
@@ -118,7 +155,7 @@ export default function Layout({ children }) {
           </nav>
         </div>
 
-        {/* ── Mobile menu ── */}
+        {/* ── Tablet slide-down menu (hamburger) ── */}
         <div className={`topnav-mobile-menu${mobileOpen ? ' open' : ''}`}>
           {[...NAV_LINKS, { to: '/asistent', key: 'asistent', label: 'AI Asistent' }].map(item => (
             <Link
@@ -157,10 +194,23 @@ export default function Layout({ children }) {
 
       <CompareFloat />
 
+      {/* ── Mobile bottom navigation ── */}
+      <nav className="bottom-nav">
+        {BOTTOM_NAV.map(item => (
+          <Link
+            key={item.key}
+            to={item.to}
+            className={`bottom-nav-item${activeKey === item.key ? ' active' : ''}`}
+          >
+            <span className="bottom-nav-icon">{item.icon}</span>
+            <span className="bottom-nav-label">{item.label}</span>
+          </Link>
+        ))}
+      </nav>
+
       <footer className="site-footer">
         <div className="site-footer-inner">
 
-          {/* Brand */}
           <div className="sf-brand">
             <div className="sf-brand-row">
               <img src="/logo.png" alt="Povezave.si" className="sf-logo-img" />
@@ -171,7 +221,6 @@ export default function Layout({ children }) {
             <p className="sf-copy">© 2026 Povezava.si</p>
           </div>
 
-          {/* Nav */}
           <div className="sf-col">
             <div className="sf-col-head">Navigacija</div>
             <Link to="/" className="sf-link">Iskanje</Link>
@@ -180,14 +229,12 @@ export default function Layout({ children }) {
             <Link to="/asistent" className="sf-link">AI Asistent</Link>
           </div>
 
-          {/* Registri */}
           <div className="sf-col">
             <div className="sf-col-head">Registri</div>
             <Link to="/lobisti" className="sf-link">Lobisti (KPK)</Link>
             <Link to="/ovadeni" className="sf-link">Kazensko ovadeni</Link>
           </div>
 
-          {/* Viri */}
           <div className="sf-col">
             <div className="sf-col-head">Viri podatkov</div>
             <span className="sf-text">AJPES — Poslovni register</span>
