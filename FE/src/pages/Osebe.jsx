@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
-import { useSavedPersons, useComparison, useSearchHistory } from '../hooks/usePersonStorage'
+import { useSavedPersons, useSearchHistory } from '../hooks/usePersonStorage'
 import { API } from '../api'
 
 function useDebounce(value, delay) {
@@ -44,7 +44,6 @@ export default function Osebe() {
   const [skupaj, getSkupaj] = useState(0)
   const [loading, setLoading] = useState(false)
   const { toggle, isSaved } = useSavedPersons()
-  const { candidate, select: selectForCompare, clear: clearCompare } = useComparison()
   const { track: trackSearch } = useSearchHistory()
 
   const debouncedQ = useDebounce(q, 350)
@@ -187,22 +186,6 @@ export default function Osebe() {
                   <div className="osebe-card-actions">
                     <Link className="osebe-card-omrezje" to={`/omrezje/${o.id}`}>Omrežje →</Link>
                     <Link className="osebe-card-ai" to={`/asistent?q=${encodeURIComponent(name)}`}>AI ✦</Link>
-                    {candidate && candidate.id !== o.id ? (
-                      <Link
-                        className="osebe-card-compare active"
-                        to={`/primerjava?a=${candidate.id}&b=${o.id}`}
-                        onClick={clearCompare}
-                      >
-                        ⇄ Primerjaj z {candidate.ime} {candidate.priimek}
-                      </Link>
-                    ) : (
-                      <button
-                        className={`osebe-card-compare${candidate?.id === o.id ? ' picking' : ''}`}
-                        onClick={e => { e.stopPropagation(); candidate?.id === o.id ? clearCompare() : selectForCompare(o) }}
-                      >
-                        {candidate?.id === o.id ? '✓ Izbran 1/2 — klikni drugo' : '⇄ Primerjaj'}
-                      </button>
-                    )}
                   </div>
                 </div>
               )

@@ -25,24 +25,6 @@ export function useSavedPersons() {
   return { saved, toggle, isSaved }
 }
 
-export function useComparison() {
-  const KEY = 'compare_candidate'
-  const [candidate, setCandidate] = useState(() => readLS(KEY, null))
-
-  const select = useCallback((oseba) => {
-    const data = { id: oseba.id, ime: oseba.ime, priimek: oseba.priimek, fotografija_url: oseba.fotografija_url }
-    setCandidate(data)
-    localStorage.setItem(KEY, JSON.stringify(data))
-  }, [])
-
-  const clear = useCallback(() => {
-    setCandidate(null)
-    localStorage.removeItem(KEY)
-  }, [])
-
-  return { candidate, select, clear }
-}
-
 export function useSearchHistory() {
   const KEY = 'search_history'
   const MAX = 20
