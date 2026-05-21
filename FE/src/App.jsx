@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
+import { AuthProvider } from './context/AuthContext'
+import PrivateRoute from './components/PrivateRoute'
 import Iskanje from './pages/Home'
 import Oseba from './pages/Oseba'
 import Podjetje from './pages/Podjetje'
@@ -10,24 +12,46 @@ import Mediji from './pages/Mediji'
 import Pot from './pages/Pot'
 import Asistent from './pages/Asistent'
 import OsebeList from './pages/Osebe'
+import MojProfil from './pages/MojProfil'
+import Primerjava from './pages/Primerjava'
+import PodjetjaList from './pages/Podjetja'
+import Login from './pages/Login'
+import Register from './pages/Register'
 import Zemljevid from './pages/Zemljevid'
 
-export default function App() {
+function PrivateRoutes() {
   return (
-    <BrowserRouter>
+    <PrivateRoute>
       <Routes>
         <Route path="/" element={<Iskanje />} />
         <Route path="/zemljevid" element={<Zemljevid />} />
         <Route path="/oseba/:id" element={<Oseba />} />
         <Route path="/osebe" element={<OsebeList />} />
         <Route path="/podjetje/:id" element={<Podjetje />} />
+        <Route path="/podjetja" element={<PodjetjaList />} />
         <Route path="/omrezje/:id" element={<Omrezje />} />
         <Route path="/lobisti" element={<Lobisti />} />
         <Route path="/ovadeni" element={<Ovadeni />} />
         <Route path="/mediji" element={<Mediji />} />
         <Route path="/pot" element={<Pot />} />
         <Route path="/asistent" element={<Asistent />} />
+        <Route path="/profil" element={<MojProfil />} />
+        <Route path="/primerjava" element={<Primerjava />} />
       </Routes>
+    </PrivateRoute>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/*" element={<PrivateRoutes />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

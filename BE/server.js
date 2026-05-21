@@ -121,6 +121,45 @@ app.get('/akademiki', async (req, res) => {
   }
 })
 
+// GET /osebe/primerjaj?a=ID1&b=ID2
+app.get('/osebe/primerjaj', async (req, res) => {
+  try {
+    const { a, b } = req.query
+    if (!a || !b) return res.status(400).json({ error: 'Manjkata parametra a in b' })
+
+    const [osebaA, osebaB, skupna] = await Promise.all([
+      pool.query(`
+        SELECT o.id, o.ime, o.priimek, o.fotografija_url, o.institucija, o.tip,
+          COUNT(p.id) AS stevilo_povezav
+        FROM osebe o LEFT JOIN povezave p ON p.oseba_id = o.id
+        WHERE o.id = $1 GROUP BY o.id
+      `, [a]),
+      pool.query(`
+        SELECT o.id, o.ime, o.priimek, o.fotografija_url, o.institucija, o.tip,
+          COUNT(p.id) AS stevilo_povezav
+        FROM osebe o LEFT JOIN povezave p ON p.oseba_id = o.id
+        WHERE o.id = $1 GROUP BY o.id
+      `, [b]),
+      pool.query(`
+        SELECT d.id, d.popolno_ime, d.pravna_oblika,
+          pa.vloga AS vloga_a, pa.datum_od AS od_a, pa.datum_do AS do_a,
+          pb.vloga AS vloga_b, pb.datum_od AS od_b, pb.datum_do AS do_b
+        FROM podjetja d
+        JOIN povezave pa ON pa.podjetje_id = d.id AND pa.oseba_id = $1
+        JOIN povezave pb ON pb.podjetje_id = d.id AND pb.oseba_id = $2
+        ORDER BY d.popolno_ime
+      `, [a, b])
+    ])
+
+    if (!osebaA.rows[0]) return res.status(404).json({ error: 'Oseba A ni najdena' })
+    if (!osebaB.rows[0]) return res.status(404).json({ error: 'Oseba B ni najdena' })
+
+    res.json({ oseba_a: osebaA.rows[0], oseba_b: osebaB.rows[0], skupna_podjetja: skupna.rows })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // GET /osebe/:id — profil osebe z njenimi povezavami
 app.get('/osebe/:id', async (req, res) => {
   try {
@@ -429,13 +468,17 @@ app.get('/pot', async (req, res) => {
 
 // POST /ai/vprasaj — AI asistent (Ollama + rule-based fallback)
 app.post('/ai/vprasaj', async (req, res) => {
-  const { vprasanje } = req.body
+  const { vprasanje, history } = req.body
   if (!vprasanje?.trim()) return res.status(400).json({ error: 'Manjka vprašanje' })
 
   try {
-    const context = await gatherContext(vprasanje, pool)
+    const context = await gatherContext(vprasanje, pool, history || [])
 
-    const prompt = `Si asistent za Povezava.si, slovensko bazo poslovnih in akademskih mrež.\n\nPodatki iz baze:\n${JSON.stringify(context.podatki)}\n\nSistematski odgovor: "${context.fallbackOdgovor}"\n\nUporabnikovo vprašanje: "${vprasanje}"\n\nOdgovori v slovenščini, kratko (1-3 stavke). Ne ponovi besede za besedo — razširi ali izboljšaj odgovor.`
+    const historyText = (history || []).slice(-6)
+      .map(m => `${m.role === 'user' ? 'Uporabnik' : 'Asistent'}: ${m.text}`)
+      .join('\n')
+
+    const prompt = `Si asistent za Povezava.si, slovensko bazo poslovnih in akademskih mrež.\n\nPodatki iz baze:\n${JSON.stringify(context.podatki)}\n\nSistematski odgovor: "${context.fallbackOdgovor}"${historyText ? '\n\nZgodovina pogovora:\n' + historyText : ''}\n\nUporabnikovo vprašanje: "${vprasanje}"\n\nOdgovori v slovenščini, kratko (1-3 stavke). Ne ponovi besede za besedo — razširi ali izboljšaj odgovor.`
 
     // 1. Ollama (lokalno)
     let odgovor = null
@@ -457,9 +500,14 @@ app.post('/ai/vprasaj', async (req, res) => {
           apiKey: process.env.GROQ_API_KEY,
           baseURL: 'https://api.groq.com/openai/v1'
         })
+        const chatMessages = (history || []).slice(-4).map(m => ({
+          role: m.role === 'user' ? 'user' : 'assistant',
+          content: m.text
+        }))
+        chatMessages.push({ role: 'user', content: prompt })
         const resp = await groq.chat.completions.create({
           model: 'llama-3.1-8b-instant',
-          messages: [{ role: 'user', content: prompt }],
+          messages: chatMessages,
           max_tokens: 256,
           temperature: 0.3
         })
@@ -478,7 +526,7 @@ app.post('/ai/vprasaj', async (req, res) => {
   }
 })
 
-async function gatherContext(q, pool) {
+async function gatherContext(q, pool, history = []) {
   const ql = q.toLowerCase()
 
   if (ql.includes('koliko') || ql.includes('statistik') || ql.includes('baza') || ql.includes('bazi')) {
@@ -493,7 +541,15 @@ async function gatherContext(q, pool) {
     }
   }
 
-  const nameMatch = q.match(/[A-ZŠŽČĆĐ][a-zšžčćđ]+ [A-ZŠŽČĆĐ][a-zšžčćđ]+/)
+  let nameMatch = q.match(/[A-ZŠŽČĆĐ][a-zšžčćđ]+ [A-ZŠŽČĆĐ][a-zšžčćđ]+/)
+
+  // For follow-up questions without a name, look for the last name mentioned in history
+  if (!nameMatch && history.length) {
+    for (let i = history.length - 1; i >= 0; i--) {
+      const m = (history[i].text || '').match(/[A-ZŠŽČĆĐ][a-zšžčćđ]+ [A-ZŠŽČĆĐ][a-zšžčćđ]+/)
+      if (m) { nameMatch = m; break }
+    }
+  }
   if (nameMatch) {
     const parts = nameMatch[0].split(' ')
     const r = await pool.query(`

@@ -44,30 +44,31 @@ router.get('/', async (req, res) => {
     const baseParams = [...params]
     params.push(limit, offset)
 
-    const result = await pool.query(`
-      SELECT o.id, o.ime, o.priimek, o.tip, o.fotografija_url, o.institucija, o.naziv,
-        COUNT(p.id) AS stevilo_povezav
-      FROM osebe o
-      LEFT JOIN povezave p ON p.oseba_id = o.id
-      ${joins}
-      ${whereClause}
-      GROUP BY o.id
-      ${havingClause}
-      ORDER BY ${orderBy}
-      LIMIT $${params.length - 1} OFFSET $${params.length}
-    `, params)
-
-    const countResult = await pool.query(`
-      SELECT COUNT(*) FROM (
-        SELECT o.id
+    const [result, countResult] = await Promise.all([
+      pool.query(`
+        SELECT o.id, o.ime, o.priimek, o.tip, o.fotografija_url, o.institucija, o.naziv,
+          COUNT(p.id) AS stevilo_povezav
         FROM osebe o
         LEFT JOIN povezave p ON p.oseba_id = o.id
         ${joins}
         ${whereClause}
         GROUP BY o.id
         ${havingClause}
-      ) sub
-    `, baseParams)
+        ORDER BY ${orderBy}
+        LIMIT $${params.length - 1} OFFSET $${params.length}
+      `, params),
+      pool.query(`
+        SELECT COUNT(*) FROM (
+          SELECT o.id
+          FROM osebe o
+          LEFT JOIN povezave p ON p.oseba_id = o.id
+          ${joins}
+          ${whereClause}
+          GROUP BY o.id
+          ${havingClause}
+        ) sub
+      `, baseParams)
+    ])
 
     res.json({ skupaj: parseInt(countResult.rows[0].count), osebe: result.rows })
   } catch (err) {

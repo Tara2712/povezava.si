@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
-
+import { useSavedPersons, useRecentlyViewed, useComparison } from '../hooks/usePersonStorage'
 import { API } from '../api'
 
 function fmtDate(d) {
@@ -10,17 +10,23 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('sl-SI')
 }
 
+const ND = <span className="nd">ni podatka</span>
+
 export default function Oseba() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [clanki, setClanki] = useState([])
+  const [povFilter, setPovFilter] = useState('')
+  const { toggle, isSaved } = useSavedPersons()
+  const { track } = useRecentlyViewed()
+  const { candidate, select: selectForCompare, clear: clearCompare } = useComparison()
 
   useEffect(() => {
     fetch(`${API}/osebe/${id}`)
       .then(r => { if (!r.ok) throw new Error('Oseba ni najdena'); return r.json() })
-      .then(setData)
+      .then(d => { setData(d); setPovFilter(''); track(d) })
       .catch(e => setError(e.message))
     fetch(`${API}/osebe/${id}/clanki`)
       .then(r => r.json()).then(setClanki).catch(() => {})
@@ -32,9 +38,17 @@ export default function Oseba() {
   const fullName = `${data.ime} ${data.priimek}`
   const first = data.povezave?.[0]
 
+  const vrsteOrg = [...new Set(
+    (data.povezave ?? []).map(p => p.pravna_oblika).filter(Boolean)
+  )]
+
+  const vidnePovezave = (data.povezave ?? []).filter(p =>
+    !povFilter || p.pravna_oblika === povFilter
+  )
+
   return (
     <Layout>
-      <button className="back-btn" onClick={() => navigate('/')}>← Nazaj na iskanje</button>
+      <button className="back-btn" onClick={() => navigate(-1)}>← Nazaj</button>
 
       <div className="profile-card">
         <div className="profile-top">
@@ -45,6 +59,36 @@ export default function Oseba() {
             {data.zadnja_posodobitev && (
               <p className="prof-updated">Zadnja posodobitev: {fmtDate(data.zadnja_posodobitev)}</p>
             )}
+            <div className="prof-action-btns">
+              <Link className="prof-btn prof-btn-network" to={`/omrezje/${id}`}>Odpri v omrežju ↗</Link>
+              <Link className="prof-btn prof-btn-ai" to={`/asistent?q=${encodeURIComponent(fullName)}`}>Vprašaj AI ✦</Link>
+              <button
+                className={`prof-btn prof-btn-save${isSaved(data.id) ? ' saved' : ''}`}
+                onClick={() => toggle(data)}
+                title={isSaved(data.id) ? 'Odstrani iz shranjenih' : 'Shrani osebo'}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={isSaved(data.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                </svg>
+                {isSaved(data.id) ? 'Shranjeno' : 'Shrani'}
+              </button>
+              {candidate && candidate.id !== data.id ? (
+                <Link
+                  className="prof-btn prof-btn-compare"
+                  to={`/primerjava?a=${candidate.id}&b=${data.id}`}
+                  onClick={clearCompare}
+                >
+                  ⇄ Primerjaj z {candidate.ime} {candidate.priimek}
+                </Link>
+              ) : (
+                <button
+                  className={`prof-btn prof-btn-compare-pick${candidate?.id === data.id ? ' active' : ''}`}
+                  onClick={() => candidate?.id === data.id ? clearCompare() : selectForCompare(data)}
+                >
+                  ⇄ {candidate?.id === data.id ? 'Prekliči primerjavo' : 'Primerjaj'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -52,25 +96,23 @@ export default function Oseba() {
           <div className="profile-details">
             <div className="detail-item">
               <label>Vloga</label>
-              <span>{first.vloga || '—'}</span>
+              <span>{first.vloga || ND}</span>
             </div>
             <div className="detail-item">
               <label>Organizacija</label>
-              <span>{first.popolno_ime || '—'}</span>
+              <span>{first.popolno_ime || ND}</span>
             </div>
             <div className="detail-item">
               <label>Obdobje</label>
               <span>
-                {first.datum_od ? fmtDate(first.datum_od) : '?'}
-                {' – '}
-                {first.datum_do ? fmtDate(first.datum_do) : 'danes'}
+                {first.datum_od ? fmtDate(first.datum_od) : ND}
+                {first.datum_od || first.datum_do ? ' – ' : ''}
+                {first.datum_do ? fmtDate(first.datum_do) : first.datum_od ? 'danes' : ''}
               </span>
             </div>
             <div className="detail-item">
-              <label>Vir</label>
-              {first.vir?.startsWith('http')
-                ? <a href={first.vir} target="_blank" rel="noopener">Odpri vir ↗</a>
-                : <span>{first.vir || '—'}</span>}
+              <label>Pravna oblika</label>
+              <span>{first.pravna_oblika || ND}</span>
             </div>
           </div>
         )}
@@ -99,9 +141,30 @@ export default function Oseba() {
         )}
       </div>
 
-      <p className="section-title">Povezave ({data.povezave?.length || 0})</p>
+      <div className="section-title-row">
+        <p className="section-title">Povezave ({data.povezave?.length || 0})</p>
+        {vrsteOrg.length > 1 && (
+          <div className="conn-filter-pills">
+            <button
+              className={`conn-filter-pill${povFilter === '' ? ' active' : ''}`}
+              onClick={() => setPovFilter('')}
+            >
+              Vse
+            </button>
+            {vrsteOrg.map(v => (
+              <button
+                key={v}
+                className={`conn-filter-pill${povFilter === v ? ' active' : ''}`}
+                onClick={() => setPovFilter(v)}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
-      {data.povezave?.map((p, i) => (
+      {vidnePovezave.map((p, i) => (
         <Link key={i} className="conn-card" to={`/podjetje/${p.podjetje_id}`}>
           <Avatar name={p.popolno_ime || '?'} size="sm" />
           <div className="conn-body">
@@ -112,11 +175,11 @@ export default function Oseba() {
         </Link>
       ))}
 
-      {data.povezave?.length === 0 && <p className="empty-msg">Ni znanih povezav</p>}
-
-      <Link className="open-network-btn" to={`/omrezje/${id}`}>
-        Odpri v omrežju ↗
-      </Link>
+      {vidnePovezave.length === 0 && (
+        <p className="empty-msg">
+          {povFilter ? `Ni povezav tipa "${povFilter}"` : 'Ni znanih povezav'}
+        </p>
+      )}
 
       {clanki.length > 0 && (
         <>
