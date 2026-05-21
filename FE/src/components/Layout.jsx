@@ -64,7 +64,6 @@ export default function Layout({ children }) {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const [regOpen, setRegOpen] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
 
   async function handleLogout() {
     await logout()
@@ -90,10 +89,6 @@ export default function Layout({ children }) {
           <Link to="/" className="topnav-brand">
             <img src="/logo.png" alt="Povezave.si" className="topnav-logo-img" />
           </Link>
-
-          <button className="topnav-hamburger" onClick={() => setMobileOpen(o => !o)} aria-label="Meni">
-            <span /><span /><span />
-          </button>
 
           <nav className="topnav-links">
             {NAV_LINKS.map(item => (
@@ -155,37 +150,6 @@ export default function Layout({ children }) {
           </nav>
         </div>
 
-        {/* ── Tablet slide-down menu (hamburger) ── */}
-        <div className={`topnav-mobile-menu${mobileOpen ? ' open' : ''}`}>
-          {[...NAV_LINKS, { to: '/asistent', key: 'asistent', label: 'AI Asistent' }].map(item => (
-            <Link
-              key={item.key}
-              to={item.to}
-              className={`topnav-mobile-link${activeKey === item.key ? ' active' : ''}`}
-              onClick={() => setMobileOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
-          <div className="topnav-mobile-divider" />
-          {REGISTRI.map(item => (
-            <Link
-              key={item.key}
-              to={item.to}
-              className={`topnav-mobile-link${activeKey === item.key ? ' active' : ''}`}
-              onClick={() => setMobileOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
-          <div className="topnav-mobile-divider" />
-          <div className="topnav-mobile-user">
-            <Link to="/profil" className="topnav-mobile-user-name" onClick={() => setMobileOpen(false)}>
-              {user?.displayName || user?.email}
-            </Link>
-            <button className="topnav-logout-btn" onClick={() => { setMobileOpen(false); handleLogout() }}>Odjava</button>
-          </div>
-        </div>
       </header>
 
       <main className="app-content">
