@@ -8,6 +8,10 @@ const NAV_LINKS = [
   { to: '/osebe',    key: 'osebe',    label: 'Seznam oseb' },
   { to: '/podjetja', key: 'podjetja', label: 'Podjetja' },
   { to: '/mediji',   key: 'mediji',   label: 'V medijih' },
+  { to: '/',       key: 'iskanje', label: 'Iskanje' },
+  { to: '/osebe',  key: 'osebe',   label: 'Seznam oseb' },
+  { to: '/zemljevid', key: 'zemljevid', label: 'Zemljevid podjetij' },
+  { to: '/mediji', key: 'mediji',  label: 'V medijih' },
 ]
 
 const REGISTRI = [
@@ -74,6 +78,7 @@ export default function Layout({ children }) {
     pathname === '/' ? 'iskanje' :
     pathname.startsWith('/osebe') ? 'osebe' :
     pathname.startsWith('/podjetja') ? 'podjetja' :
+    pathname.startsWith('/zemljevid') ? 'zemljevid' :
     pathname.startsWith('/asistent') ? 'asistent' :
     pathname.startsWith('/profil') ? 'profil' :
     pathname.startsWith('/lobisti') ? 'lobisti' :

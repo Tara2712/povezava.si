@@ -1,8 +1,8 @@
 # Delitev dela 
 
 ## do konca 17.5.
-[] osnovni ui
-    [] zemljevid slovenije - točke prikazujejo podjetja
+[x] osnovni ui
+    [x] zemljevid slovenije - točke prikazujejo podjetja
 [X] prikaz baze na fe
 [] urejanje in brisanje obstoječih zapisov
 [] README.md dopolnit
@@ -28,12 +28,22 @@
 [X] vzpostavitev BE
 [X] Ui figma
 [X] ročni vnos, podjetji in povezav
-[x] ajpes scraper za osebe + scraper za osebe in aktivnost podjetij
-[] linkedin scraper????
-[] zemljevid slovenije - točke prikazujejo podjetja
-[] osnovna logika grafa
-[] 6 degrees of seperation 
-    [] model za povezovanje med podjetji, osebami, regijami, mediji,...
+[x] ajpes scraper za osebe
+[x] ajpes scraper za osebe in aktivnost podjetij
+[x] zemljevid slovenije - točke prikazujejo podjetja
+    [x] geokodiranje lokacij
+    [] filtriranje zemljevida
+    [] iskanje po zemljevidu
+    [x] popravi backend (preveč obremnjen server)
+[x] osnovna logika grafa
+    [] popravi izgled - FE
+    [] graf clustri
+    [] izvoz podatkov v pdf
+[] Scrapanje člankov
+[] Testiranje frontend
+[] Dokumentiranje Jira
+[] Responsive ui za mobilne naprave
+
 
 
 ## CHANTAL
@@ -50,3 +60,11 @@
 [X] vzpostavitev FE na vercel
 [] 6 degrees of seperation 
     [] model za povezovanje med podjetji, osebami, regijami, mediji,...
+    [] razširi na osebe--podjetja, osebe-osebe,..
+    [] Ai model za iskanje
+[] Scrapanje člankov
+[] Ustvari piškote
+[] Testiranje backend
+[] Dokumentiranje Jira
+[] Popravi in dopolni dokumentacijo
+[] Responsive ui za mobilne naprave
