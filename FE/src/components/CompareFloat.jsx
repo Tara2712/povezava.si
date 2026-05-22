@@ -9,7 +9,7 @@ export default function CompareFloat() {
   const { pathname } = useLocation()
   const { candidate, select, clear } = useComparison()
 
-  if (pathname.startsWith('/asistent') || pathname.startsWith('/primerjava')) return null
+  if (pathname.startsWith('/asistent') || pathname.startsWith('/primerjava') || pathname.startsWith('/osebe') || pathname.startsWith('/podjetja')) return null
   const { saved } = useSavedPersons()
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')

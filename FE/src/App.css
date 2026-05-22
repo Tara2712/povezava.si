@@ -591,6 +591,13 @@
 }
 .prof-btn-save:hover { border-color: #a5b4fc; color: #4f46e5; }
 .prof-btn-save.saved { background: #eef2ff; border-color: #a5b4fc; color: #4f46e5; }
+.share-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  border: 1px solid #e5e7eb; background: #fff; color: #6b7280; cursor: pointer;
+  transition: all 0.15s;
+}
+.share-btn:hover { border-color: #d1d5db; background: #f9fafb; }
 .prof-btn-compare {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
@@ -3289,7 +3296,6 @@
 .osebe-card:hover {
   box-shadow: 0 4px 20px rgba(79,70,229,0.1);
   border-color: #c7d2fe;
-  transform: translateY(-2px);
 }
 .osebe-card-body { display: flex; flex-direction: column; gap: 2px; }
 .osebe-card-name { font-size: 14px; font-weight: 700; color: #111827; }
@@ -3317,48 +3323,57 @@
   border-bottom: none;
 }
 .osebe-card-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid #c7d2fe;
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #e5e7eb;
   border-top: none;
   border-bottom-left-radius: 14px;
   border-bottom-right-radius: 14px;
-  overflow: hidden;
+  background: #f9fafb;
+  position: relative;
+  z-index: 2;
 }
 .osebe-card-omrezje,
 .osebe-card-ai {
-  display: block;
-  text-align: center;
-  padding: 7px 4px;
-  font-size: 12px;
-  font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  padding: 9px 4px;
+  flex: 1; min-width: 0;
+  font-size: 12px; font-weight: 500;
   text-decoration: none;
   transition: background 0.15s;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .osebe-card-omrezje {
   color: #374151;
   background: #f3f4f6;
-  border-right: 1px solid #c7d2fe;
+  border-right: 1px solid #e5e7eb;
+  border-bottom-left-radius: 13px;
 }
 .osebe-card-omrezje:hover { background: #e5e7eb; }
 .osebe-card-ai {
   color: #4f46e5;
   background: #eef2ff;
+  border-right: 1px solid #e0e7ff;
 }
 .osebe-card-ai:hover { background: #e0e7ff; }
-.osebe-card-compare {
-  display: flex; align-items: center; justify-content: center;
-  padding: 7px 8px; background: #f9fafb; border: none;
-  color: #9ca3af; cursor: pointer; font-size: 13px; font-weight: 500;
-  text-decoration: none; transition: all 0.15s;
-  grid-column: 1 / -1;
-  border-top: 1px solid #e0e7ff;
+.osebe-card-icons {
+  display: flex; align-items: stretch; flex-shrink: 0;
 }
-.osebe-card-compare:hover { background: #f0fdf4; color: #16a34a; }
-.osebe-card-compare.picking { background: #166534; color: #fff; font-size: 11px; font-weight: 600; }
-.osebe-card-compare.picking:hover { background: #14532d; }
-.osebe-card-compare.active { background: #16a34a; color: #fff; font-size: 11px; font-weight: 600; }
-.osebe-card-compare.active:hover { background: #15803d; }
+.osebe-card-icon-btn,
+.osebe-card-icons .share-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px;
+  background: #f9fafb; border: none; border-left: 1px solid #e5e7eb;
+  color: #9ca3af; cursor: pointer;
+  text-decoration: none; transition: background 0.15s, color 0.15s;
+  padding: 0; font-size: 0; border-radius: 0;
+}
+.osebe-card-icons .share-btn:last-child,
+.osebe-card-icon-btn:last-child { border-bottom-right-radius: 13px; }
+.osebe-card-icons .share-btn:hover,
+.osebe-card-icon-btn:hover { background: #f3f4f6; color: #4f46e5; }
+.osebe-card-compare-icon.picking { background: #ede9fe; color: #4f46e5; }
+.osebe-card-compare-icon.active { background: #dcfce7; color: #16a34a; }
 .osebe-card-save {
   position: absolute; top: 8px; right: 8px; z-index: 2;
   display: flex; align-items: center; justify-content: center;
