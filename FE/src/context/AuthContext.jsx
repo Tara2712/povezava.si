@@ -4,9 +4,12 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  updateEmail,
+  updatePassword,
 } from 'firebase/auth'
-import { auth } from '../firebase'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { auth, storage } from '../firebase'
 
 const AuthContext = createContext(null)
 
@@ -35,10 +38,31 @@ export function AuthProvider({ children }) {
     return signOut(auth)
   }
 
+  async function updateUserProfile({ displayName, photoFile }) {
+    const updates = {}
+    if (displayName !== undefined) updates.displayName = displayName
+    if (photoFile) {
+      const storageRef = ref(storage, `profile-photos/${auth.currentUser.uid}`)
+      await uploadBytes(storageRef, photoFile)
+      updates.photoURL = await getDownloadURL(storageRef)
+    }
+    await updateProfile(auth.currentUser, updates)
+    setUser(Object.assign(Object.create(Object.getPrototypeOf(auth.currentUser)), auth.currentUser))
+  }
+
+  async function updateUserEmail(newEmail) {
+    await updateEmail(auth.currentUser, newEmail)
+    setUser(Object.assign(Object.create(Object.getPrototypeOf(auth.currentUser)), auth.currentUser))
+  }
+
+  async function updateUserPassword(newPassword) {
+    await updatePassword(auth.currentUser, newPassword)
+  }
+
   if (loading) return null
 
   return (
-    <AuthContext.Provider value={{ user, register, login, logout }}>
+    <AuthContext.Provider value={{ user, register, login, logout, updateUserProfile, updateUserEmail, updateUserPassword }}>
       {children}
     </AuthContext.Provider>
   )
