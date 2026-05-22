@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useSavedPersons, useRecentlyViewed, useSearchHistory } from '../hooks/usePersonStorage'
+import { useWatchlist } from '../hooks/useWatchlist'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 
@@ -31,6 +32,7 @@ export default function MojProfil() {
   const { user, logout, updateUserProfile, updateUserEmail, updateUserPassword } = useAuth()
   const navigate = useNavigate()
   const { saved, toggle } = useSavedPersons()
+  const { following, unfollow } = useWatchlist()
   const { recent } = useRecentlyViewed()
   const { history: searches, remove: removeSearch, clear: clearSearches } = useSearchHistory()
   const fileRef = useRef(null)
@@ -173,6 +175,35 @@ export default function MojProfil() {
         )}
 
         <div className="mp-grid">
+
+          {/* ── Sledim ── */}
+          {following.length > 0 && (
+            <section className="mp-section">
+              <div className="mp-section-head">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                Sledim
+                <span className="mp-badge">{following.length}</span>
+              </div>
+              {following.map(f => (
+                <div key={f.personId} className="mp-person-row">
+                  <Link to={`/oseba/${f.personId}`} className="mp-person-link">
+                    <div className="mp-person-info">
+                      <span className="mp-person-name">{f.personName}</span>
+                      <span className="mp-person-sub">Od {new Date(f.followedAt).toLocaleDateString('sl-SI')}</span>
+                    </div>
+                  </Link>
+                  <button className="mp-remove-btn" onClick={() => unfollow(f.personId)} title="Prenehi slediti">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </section>
+          )}
 
           {/* ── Shranjene osebe ── */}
           <section className="mp-section">

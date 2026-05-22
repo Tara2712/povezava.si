@@ -4,6 +4,7 @@ import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
 import ShareBtn from '../components/ShareBtn'
 import { useSavedPersons, useRecentlyViewed, useComparison } from '../hooks/usePersonStorage'
+import { useWatchlist } from '../hooks/useWatchlist'
 import { API } from '../api'
 
 function fmtDate(d) {
@@ -23,6 +24,7 @@ export default function Oseba() {
   const { toggle, isSaved } = useSavedPersons()
   const { track } = useRecentlyViewed()
   const { candidate, select: selectForCompare, clear: clearCompare } = useComparison()
+  const { isFollowing, follow, unfollow, loading: watchLoading } = useWatchlist()
 
   useEffect(() => {
     fetch(`${API}/osebe/${id}`)
@@ -64,6 +66,17 @@ export default function Oseba() {
               <Link className="prof-btn prof-btn-network" to={`/omrezje/${id}`}>Odpri v omrežju ↗</Link>
               <Link className="prof-btn prof-btn-ai" to={`/asistent?q=${encodeURIComponent(fullName)}`}>Vprašaj AI ✦</Link>
               <ShareBtn url={`/oseba/${id}`} name={fullName} className="prof-btn prof-btn-share" />
+              <button
+                className={`prof-btn prof-btn-watch${isFollowing(data.id) ? ' active' : ''}`}
+                onClick={() => isFollowing(data.id) ? unfollow(data.id) : follow(data)}
+                disabled={watchLoading}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={isFollowing(data.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {isFollowing(data.id) ? 'Slediš' : 'Sledi'}
+              </button>
               <button
                 className={`prof-btn prof-btn-save${isSaved(data.id) ? ' saved' : ''}`}
                 onClick={() => toggle(data)}
