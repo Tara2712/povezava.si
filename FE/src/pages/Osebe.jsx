@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
+import ShareBtn from '../components/ShareBtn'
 import { useSavedPersons, useComparison, useSearchHistory } from '../hooks/usePersonStorage'
 import { API } from '../api'
 
@@ -187,22 +188,30 @@ export default function Osebe() {
                   <div className="osebe-card-actions">
                     <Link className="osebe-card-omrezje" to={`/omrezje/${o.id}`}>Omrežje →</Link>
                     <Link className="osebe-card-ai" to={`/asistent?q=${encodeURIComponent(name)}`}>AI ✦</Link>
-                    {candidate && candidate.id !== o.id ? (
-                      <Link
-                        className="osebe-card-compare active"
-                        to={`/primerjava?a=${candidate.id}&b=${o.id}`}
-                        onClick={clearCompare}
-                      >
-                        ⇄ Primerjaj z {candidate.ime} {candidate.priimek}
-                      </Link>
-                    ) : (
-                      <button
-                        className={`osebe-card-compare${candidate?.id === o.id ? ' picking' : ''}`}
-                        onClick={e => { e.stopPropagation(); candidate?.id === o.id ? clearCompare() : selectForCompare(o) }}
-                      >
-                        {candidate?.id === o.id ? '✓ Izbran 1/2 — klikni drugo' : '⇄ Primerjaj'}
-                      </button>
-                    )}
+                    <div className="osebe-card-icons">
+                      <ShareBtn url={`/oseba/${o.id}`} name={name} iconOnly />
+                      {candidate && candidate.id !== o.id ? (
+                        <Link
+                          className="osebe-card-icon-btn osebe-card-compare-icon active"
+                          to={`/primerjava?a=${candidate.id}&b=${o.id}`}
+                          onClick={clearCompare}
+                          title={`Primerjaj z ${candidate.ime} ${candidate.priimek}`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        </Link>
+                      ) : (
+                        <button
+                          className={`osebe-card-icon-btn osebe-card-compare-icon${candidate?.id === o.id ? ' picking' : ''}`}
+                          onClick={e => { e.stopPropagation(); candidate?.id === o.id ? clearCompare() : selectForCompare(o) }}
+                          title={candidate?.id === o.id ? 'Izbran — klikni drugo osebo' : 'Primerjaj'}
+                        >
+                          {candidate?.id === o.id
+                            ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                          }
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )

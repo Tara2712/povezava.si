@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import Avatar from '../components/Avatar'
+import ShareBtn from '../components/ShareBtn'
 import { useSavedPersons, useRecentlyViewed, useComparison } from '../hooks/usePersonStorage'
 import { API } from '../api'
 
@@ -62,6 +63,7 @@ export default function Oseba() {
             <div className="prof-action-btns">
               <Link className="prof-btn prof-btn-network" to={`/omrezje/${id}`}>Odpri v omrežju ↗</Link>
               <Link className="prof-btn prof-btn-ai" to={`/asistent?q=${encodeURIComponent(fullName)}`}>Vprašaj AI ✦</Link>
+              <ShareBtn url={`/oseba/${id}`} name={fullName} className="prof-btn prof-btn-share" />
               <button
                 className={`prof-btn prof-btn-save${isSaved(data.id) ? ' saved' : ''}`}
                 onClick={() => toggle(data)}
