@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useWatchlist } from '../hooks/useWatchlist'
 import CompareFloat from './CompareFloat'
 
 const BAZA = [
@@ -64,6 +65,17 @@ export default function Layout({ children }) {
   const [regOpen, setRegOpen] = useState(false)
   const [bazaOpen, setBazaOpen] = useState(false)
   const [vecOpen, setVecOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const { notifications, dismissNotification, dismissAll } = useWatchlist()
+  const notifRef = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   async function handleLogout() {
     await logout()
@@ -170,6 +182,39 @@ export default function Layout({ children }) {
               AI Asistent
             </Link>
             <div className="topnav-ai-divider" />
+            <div className="topnav-notif-wrap" ref={notifRef}>
+              <button className="topnav-notif-btn" onClick={() => setNotifOpen(v => !v)}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {notifications.length > 0 && (
+                  <span className="topnav-notif-badge">{notifications.length}</span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="notif-panel">
+                  <div className="notif-head">
+                    <span>Obvestila</span>
+                    {notifications.length > 0 && (
+                      <button className="notif-dismiss-all" onClick={dismissAll}>Počisti vse</button>
+                    )}
+                  </div>
+                  {notifications.length === 0
+                    ? <p className="notif-empty">Ni novih sprememb za sledene osebe.</p>
+                    : notifications.map(n => (
+                        <div key={n.personId} className="notif-item">
+                          <Link to={`/oseba/${n.personId}`} className="notif-link" onClick={() => setNotifOpen(false)}>
+                            <span className="notif-name">{n.personName}</span>
+                            <span className="notif-desc">+{n.diff} {n.diff === 1 ? 'nova povezava' : 'nove povezave'}</span>
+                          </Link>
+                          <button className="notif-dismiss" onClick={() => dismissNotification(n.personId)}>✕</button>
+                        </div>
+                      ))
+                  }
+                </div>
+              )}
+            </div>
             <div className="topnav-user">
               <Link to="/profil" className="topnav-user-name">{user?.displayName || user?.email}</Link>
               <button className="topnav-logout-btn" onClick={handleLogout}>Odjava</button>
