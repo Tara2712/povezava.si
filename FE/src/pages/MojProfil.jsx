@@ -50,6 +50,7 @@ export default function MojProfil() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [watchlistOpen, setWatchlistOpen] = useState(false)
 
   async function handleLogout() {
     await logout()
@@ -123,6 +124,11 @@ export default function MojProfil() {
           <div className="mp-header-info">
             <h1 className="mp-name">{user?.displayName || user?.email?.split('@')[0]}</h1>
             <p className="mp-email">{user?.email}</p>
+            {following.length > 0 && (
+              <button className="mp-following-count" onClick={() => setWatchlistOpen(true)}>
+                Slediš {following.length} {following.length === 1 ? 'osebi' : 'osebam'}
+              </button>
+            )}
             {success && <p className="mp-success">{success}</p>}
           </div>
 
@@ -175,35 +181,6 @@ export default function MojProfil() {
         )}
 
         <div className="mp-grid">
-
-          {/* ── Sledim ── */}
-          {following.length > 0 && (
-            <section className="mp-section">
-              <div className="mp-section-head">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                Sledim
-                <span className="mp-badge">{following.length}</span>
-              </div>
-              {following.map(f => (
-                <div key={f.personId} className="mp-person-row">
-                  <Link to={`/oseba/${f.personId}`} className="mp-person-link">
-                    <div className="mp-person-info">
-                      <span className="mp-person-name">{f.personName}</span>
-                      <span className="mp-person-sub">Od {new Date(f.followedAt).toLocaleDateString('sl-SI')}</span>
-                    </div>
-                  </Link>
-                  <button className="mp-remove-btn" onClick={() => unfollow(f.personId)} title="Prenehi slediti">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                  </button>
-                </div>
-              ))}
-            </section>
-          )}
 
           {/* ── Shranjene osebe ── */}
           <section className="mp-section">
@@ -270,6 +247,36 @@ export default function MojProfil() {
         )}
 
       </div>
+
+      {watchlistOpen && (
+        <div className="mp-modal-overlay" onClick={() => setWatchlistOpen(false)}>
+          <div className="mp-modal" onClick={e => e.stopPropagation()}>
+            <div className="mp-modal-head">
+              <span>Sledim ({following.length})</span>
+              <button className="mp-modal-close" onClick={() => setWatchlistOpen(false)}>✕</button>
+            </div>
+            {following.length === 0
+              ? <p className="mp-empty" style={{ padding: '16px' }}>Še ne slediš nobeni osebi.</p>
+              : following.map(f => (
+                <div key={f.personId} className="mp-person-row">
+                  <Link to={`/oseba/${f.personId}`} className="mp-person-link" onClick={() => setWatchlistOpen(false)}>
+                    <div className="mp-person-info">
+                      <span className="mp-person-name">{f.personName}</span>
+                      <span className="mp-person-sub">Od {new Date(f.followedAt).toLocaleDateString('sl-SI')}</span>
+                    </div>
+                  </Link>
+                  <button className="mp-remove-btn" onClick={() => unfollow(f.personId)} title="Prenehi slediti">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+
     </Layout>
   )
 }
