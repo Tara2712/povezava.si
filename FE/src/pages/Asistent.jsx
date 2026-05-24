@@ -27,8 +27,8 @@ function Message({ msg }) {
         <p className="ai-msg-text">{msg.text}</p>
         {msg.podatki && <DataLinks podatki={msg.podatki} />}
         {msg.vir && (
-          <span className={`ai-msg-vir ${msg.vir === 'ollama' ? 'ai-vir-ollama' : 'ai-vir-sistem'}`}>
-            {msg.vir === 'ollama' ? 'Ollama AI' : msg.vir === 'groq' ? 'Groq AI' : 'Sistem'}
+          <span className={`ai-msg-vir ${msg.vir === 'gemini' ? 'ai-vir-gemini' : msg.vir === 'groq' ? 'ai-vir-groq' : 'ai-vir-sistem'}`}>
+            {msg.vir === 'gemini' ? 'Gemini + Google' : msg.vir === 'groq' ? 'Groq AI' : 'Sistem'}
           </span>
         )}
       </div>
@@ -319,7 +319,7 @@ export default function Asistent() {
               </button>
             </div>
             <p className="ai-footer-note">
-              AI: <a href="https://ollama.com" target="_blank" rel="noopener" className="ai-ollama-link">Ollama</a> lokalno · <a href="https://groq.com" target="_blank" rel="noopener" className="ai-ollama-link">Groq</a> rezerva
+              AI: <a href="https://deepmind.google/gemini" target="_blank" rel="noopener" className="ai-ollama-link">Gemini</a> + Google Search · <a href="https://groq.com" target="_blank" rel="noopener" className="ai-ollama-link">Groq</a> rezerva
             </p>
           </div>
         ) : (
