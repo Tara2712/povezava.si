@@ -2251,15 +2251,15 @@
 .ai-ollama-badge svg { color: #22c55e; }
 
 .ai-chat {
-  flex: 1;
   display: flex;
   flex-direction: column;
   background: #fff;
   border: 1.5px solid #e5e7eb;
   border-radius: 16px;
   overflow: hidden;
-  min-height: 0;
   margin-bottom: 24px;
+  height: calc(100vh - 340px);
+  min-height: 380px;
 }
 .ai-messages {
   flex: 1;
