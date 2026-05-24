@@ -2312,6 +2312,8 @@
   margin-top: 6px;
 }
 .ai-vir-ollama { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.ai-vir-gemini { background: rgba(16,185,129,0.1); color: #059669; }
+.ai-vir-groq   { background: rgba(99,102,241,0.1); color: #4f46e5; }
 .ai-vir-sistem { background: rgba(245,158,11,0.1); color: #d97706; }
 
 .ai-data-row {

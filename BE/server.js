@@ -1,5 +1,5 @@
 require('dotenv').config()
-// v2.3 — Groq (brezplačen) fallback za AI asistent
+// v2.4 — Gemini + Google Search grounding, Groq fallback
 const express = require('express')
 const { Pool } = require('pg')
 const axios = require('axios')
@@ -466,7 +466,7 @@ app.get('/pot', async (req, res) => {
   }
 })
 
-// POST /ai/vprasaj — AI asistent (Ollama + rule-based fallback)
+// POST /ai/vprasaj — AI asistent (Gemini + Google Search, Groq fallback)
 app.post('/ai/vprasaj', async (req, res) => {
   const { vprasanje, history } = req.body
   if (!vprasanje?.trim()) return res.status(400).json({ error: 'Manjka vprašanje' })
@@ -478,22 +478,38 @@ app.post('/ai/vprasaj', async (req, res) => {
       .map(m => `${m.role === 'user' ? 'Uporabnik' : 'Asistent'}: ${m.text}`)
       .join('\n')
 
-    const prompt = `Si asistent za Povezava.si, slovensko bazo poslovnih in akademskih mrež.\n\nPodatki iz baze:\n${JSON.stringify(context.podatki)}\n\nSistematski odgovor: "${context.fallbackOdgovor}"${historyText ? '\n\nZgodovina pogovora:\n' + historyText : ''}\n\nUporabnikovo vprašanje: "${vprasanje}"\n\nOdgovori v slovenščini, kratko (1-3 stavke). Ne ponovi besede za besedo — razširi ali izboljšaj odgovor.`
+    const prompt = `Si asistent za Povezava.si — slovensko bazo poslovnih in akademskih mrež iz javnih registrov.
 
-    // 1. Ollama (lokalno)
+Podatki iz naše baze:
+${JSON.stringify(context.podatki)}
+Povzetek iz baze: ${context.fallbackOdgovor}
+${historyText ? `\nZgodovina pogovora:\n${historyText}` : ''}
+
+Vprašanje: "${vprasanje}"
+
+Odgovori v slovenščini. Kombiniraj podatke iz baze z aktualnimi informacijami s spleta. Odgovor naj bo informativen in jedrnat (2-4 stavki).`
+
     let odgovor = null
     let vir = 'sistem'
-    const ollamaUrl   = process.env.OLLAMA_URL || 'http://localhost:11434'
-    const ollamaModel = process.env.OLLAMA_MODEL || 'mistral'
-    try {
-      const resp = await axios.post(`${ollamaUrl}/api/generate`, {
-        model: ollamaModel, prompt, stream: false
-      }, { timeout: 12000 })
-      odgovor = resp.data?.response?.trim() || null
-      if (odgovor) vir = 'ollama'
-    } catch (_) {}
 
-    // 2. Groq (brezplačen, produkcija)
+    // 1. Gemini + Google Search grounding
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        const { GoogleGenAI } = require('@google/genai')
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+        const resp = await ai.models.generateContent({
+          model: 'gemini-2.0-flash',
+          contents: prompt,
+          config: { tools: [{ googleSearch: {} }] }
+        })
+        odgovor = resp.text?.trim() || null
+        if (odgovor) vir = 'gemini'
+      } catch (e) {
+        console.warn('Gemini napaka:', e.message)
+      }
+    }
+
+    // 2. Groq fallback (llama-3.3-70b)
     if (!odgovor && process.env.GROQ_API_KEY) {
       try {
         const groq = new OpenAI({
@@ -506,9 +522,9 @@ app.post('/ai/vprasaj', async (req, res) => {
         }))
         chatMessages.push({ role: 'user', content: prompt })
         const resp = await groq.chat.completions.create({
-          model: 'llama-3.1-8b-instant',
+          model: 'llama-3.3-70b-versatile',
           messages: chatMessages,
-          max_tokens: 256,
+          max_tokens: 400,
           temperature: 0.3
         })
         odgovor = resp.choices[0]?.message?.content?.trim() || null
