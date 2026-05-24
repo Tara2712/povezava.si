@@ -193,13 +193,13 @@ export default function Asistent() {
   ])
   const [input, setInput]     = useState(() => searchParams.get('q') ?? '')
   const [loading, setLoading] = useState(false)
-  const bottomRef    = useRef(null)
+  const messagesRef  = useRef(null)
   const inputRef     = useRef(null)
-  const initialMount = useRef(true)
 
   useEffect(() => {
-    if (initialMount.current) { initialMount.current = false; return }
-    if (tab === 'ai') bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (tab === 'ai' && messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight
+    }
   }, [messages, tab])
 
   async function send(text) {
@@ -271,7 +271,7 @@ export default function Asistent() {
 
         {tab === 'ai' ? (
           <div className="ai-chat">
-            <div className="ai-messages">
+            <div className="ai-messages" ref={messagesRef}>
               {messages.map((msg, i) => <Message key={i} msg={msg} />)}
               {loading && (
                 <div className="ai-msg ai-msg-ai">
@@ -285,7 +285,6 @@ export default function Asistent() {
                   </div>
                 </div>
               )}
-              <div ref={bottomRef} />
             </div>
 
             <div className="ai-predlogi">
