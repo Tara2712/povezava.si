@@ -478,7 +478,7 @@ app.post('/ai/vprasaj', async (req, res) => {
       .map(m => `${m.role === 'user' ? 'Uporabnik' : 'Asistent'}: ${m.text}`)
       .join('\n')
 
-    const prompt = `Si asistent za Povezava.si — slovensko bazo poslovnih in akademskih mrež iz javnih registrov.
+    const prompt = `Si strokovni asistent za Povezava.si — slovensko bazo poslovnih in akademskih mrež.
 
 Podatki iz naše baze:
 ${JSON.stringify(context.podatki)}
@@ -487,20 +487,24 @@ ${historyText ? `\nZgodovina pogovora:\n${historyText}` : ''}
 
 Vprašanje: "${vprasanje}"
 
-Odgovori v slovenščini. Kombiniraj podatke iz baze z aktualnimi informacijami s spleta. Odgovor naj bo informativen in jedrnat (2-4 stavki).`
+Navodila:
+- Odgovori v slovenščini
+- Uporabi podatke iz baze KOT TUDI svoje znanje o slovenskih akademikih, podjetjih in poslovnem prostoru
+- Za akademike: navedi njihove projekte, publikacije, področja raziskovanja, dosežke — kar veš
+- Odgovor naj bo informativen in konkreten (3-5 stavkov)
+- Ne reci "nimam podatkov v bazi" — poišči v svojem znanju`
 
     let odgovor = null
     let vir = 'sistem'
 
-    // 1. Gemini + Google Search grounding
+    // 1. Gemini (z obsežnim znanjem o slovenskem akademskem in poslovnem prostoru)
     if (process.env.GEMINI_API_KEY) {
       try {
         const { GoogleGenAI } = require('@google/genai')
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
         const resp = await ai.models.generateContent({
           model: 'gemini-2.0-flash',
-          contents: prompt,
-          config: { tools: [{ googleSearch: {} }] }
+          contents: prompt
         })
         odgovor = resp.text?.trim() || null
         if (odgovor) vir = 'gemini'
