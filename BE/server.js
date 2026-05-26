@@ -581,6 +581,40 @@ async function toolSearchAkademiki() {
   return r.rows.map(o => `${o.ime} ${o.priimek} — ${o.institucija || o.opis || ''}`).join('\n')
 }
 
+async function toolGetPersonArticles(name) {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length < 2) return 'Ni dovolj podatkov za iskanje.'
+  const norm = (s) => s.toLowerCase().replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z').replace(/đ/g, 'd')
+  const [p1, p2] = parts
+  const n1 = norm(p1), n2 = norm(p2)
+
+  // Try join via clanki_osebe first, fall back to title search
+  let r = await pool.query(`
+    SELECT c.naslov, c.url, c.datum, c.vir
+    FROM clanki c
+    JOIN clanki_osebe co ON co.clanek_id = c.id
+    JOIN osebe o ON o.id = co.oseba_id
+    WHERE (o.ime ILIKE $1 AND o.priimek ILIKE $2) OR (o.ime ILIKE $2 AND o.priimek ILIKE $1)
+       OR (translate(LOWER(o.ime),'čćšžđ','ccszd') ILIKE $3 AND translate(LOWER(o.priimek),'čćšžđ','ccszd') ILIKE $4)
+    ORDER BY c.datum DESC LIMIT 5
+  `, [`%${p1}%`, `%${p2}%`, `%${n1}%`, `%${n2}%`])
+
+  if (!r.rows.length) {
+    // Fallback: search article titles
+    r = await pool.query(`
+      SELECT naslov, url, datum, vir FROM clanki
+      WHERE naslov ILIKE $1 OR naslov ILIKE $2
+         OR (translate(LOWER(naslov),'čćšžđ','ccszd') ILIKE $3 AND translate(LOWER(naslov),'čćšžđ','ccszd') ILIKE $4)
+      ORDER BY datum DESC LIMIT 5
+    `, [`%${p1}%${p2}%`, `%${p2}%${p1}%`, `%${n1}%`, `%${n2}%`])
+  }
+
+  if (!r.rows.length) return `Za osebo "${name}" ni člankov v bazi.`
+  return r.rows.map((c, i) =>
+    `${i + 1}. ${c.naslov} (${c.vir}, ${new Date(c.datum).toLocaleDateString('sl-SI')})\n   ${c.url}`
+  ).join('\n')
+}
+
 const AI_TOOLS = [
   {
     type: 'function',
@@ -644,8 +678,20 @@ const AI_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'get_person_articles',
+      description: 'Pridobi zadnje novičarske članke o določeni osebi iz baze. Uporabi ko vprašajo "kateri so zadnji članki o X", "v čem se je X omenjal", ali splošno kot dopolnilo k lookup_person.',
+      parameters: {
+        type: 'object',
+        properties: { name: { type: 'string', description: 'Ime in priimek osebe' } },
+        required: ['name']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'search_web',
-      description: 'Poišči informacije na spletu. Uporabi SAMO ko oseba ni v bazi ali ko vprašanje zahteva aktualne/spletne informacije.',
+      description: 'Poišči informacije na spletu. Uporabi ko oseba ali podjetje NI v bazi, ali ko vprašanje zahteva aktualne informacije ki jih baza nima.',
       parameters: {
         type: 'object',
         properties: { query: { type: 'string', description: 'Iskalni niz za spletno iskanje' } },
@@ -673,15 +719,17 @@ app.post('/ai/vprasaj', async (req, res) => {
 
     const SYSTEM = `Si profesionalni AI asistent za Povezava.si — slovensko bazo poslovnih in akademskih mrež.
 
+Razpoložljivi podatki v bazi: osebe (akademiki, podjetniki, lobisti), podjetja, poslovne povezave, novičarski članki o osebah.
+
 Kako odgovarjaš:
-- Vedno v slovenščini, v naravnem jeziku. Nikoli ne izpiši surovih podatkov iz orodij — pretvori jih v lepo oblikovan, jedrnat odgovor.
-- Ko orodje vrne podatke o osebi: napiši 2–4 stavke v naravnem jeziku (npr. "Jana Novak je redna profesorica na UM FERI, kjer vodi Laboratorij za ... Ima 45 poslovnih povezav, med njimi ...").
-- Ko orodje vrne seznam: prikaži ga kot urejen seznam z oštevilčenjem.
-- Ko orodje vrne "ni v bazi": jasno sporoči, da oseba ni v bazi, brez izmišljevanja.
+- Vedno v slovenščini, v naravnem jeziku. Nikoli ne izpiši surovih podatkov — pretvori jih v jedrnat, lep odgovor.
+- Ko orodje vrne podatke o osebi: napiši 2–4 stavke (npr. "Jana Novak je redna profesorica na UM FERI, kjer vodi Laboratorij za ... Ima 45 poslovnih povezav.").
+- Ko orodje vrne seznam: prikaži ga z oštevilčenjem.
+- Ko orodje vrne "ni v bazi" + javne informacije s spleta: povzemi spletne informacije in jasno napomni, da oseba ni v bazi.
 - Ko te prosijo za profil/link: odgovori samo "Profil je prikazan spodaj."
+- Za vprašanja o člankiħ, novicah ali medijskem pojavljanju: pokliči get_person_articles.
 - Sledi kontekstu — ko se tema zamenja, upoštevaj novo temo.
-- Podatki iz orodij so edini vir resnice. Ne dodajaj imen ali dejstev, ki jih orodje ni vrnilo.
-- Povezava.si je slovenska baza poslovnih in akademskih mrež z osebami, podjetji in njihovimi poslovnimi vezami.`
+- Podatki iz orodij so edini vir resnice. Ne izmišljaj imen ali dejstev.`
 
     const messages = [
       { role: 'system', content: SYSTEM },
@@ -716,14 +764,22 @@ Kako odgovarjaš:
         let result = ''
         if (call.function.name === 'lookup_person') {
           const r = await toolLookupPerson(args.name)
-          if (r.found) { profil = r.osebe[0] }
-          result = r.message
+          if (r.found) {
+            profil = r.osebe[0]
+            result = r.message
+          } else {
+            // Auto web fallback when person not in DB
+            const webResult = await searchWeb(`${args.name} Slovenija`)
+            result = `Oseba "${args.name}" ni v bazi Povezava.si.`
+            if (webResult) result += `\n\nJavne informacije s spleta:\n${webResult}`
+          }
         }
         else if (call.function.name === 'get_database_stats') result = await toolGetStats()
         else if (call.function.name === 'get_company_staff') result = await toolGetCompanyStaff(args.company)
         else if (call.function.name === 'get_top_connected') result = await toolGetTopConnected(args.limit)
         else if (call.function.name === 'get_lobists') result = await toolGetLobists()
         else if (call.function.name === 'get_akademiki') result = await toolSearchAkademiki()
+        else if (call.function.name === 'get_person_articles') result = await toolGetPersonArticles(args.name)
         else if (call.function.name === 'search_web') result = await searchWeb(args.query) || 'Ni rezultatov.'
 
         messages.push({ role: 'tool', tool_call_id: call.id, content: result })
