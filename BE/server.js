@@ -502,40 +502,78 @@ function isFollowUp(text) {
   return /\b(on|ona|njega|njemu|njem|njegov|njegova|njegovo|njegovi|njena|njeni|njeno|ji|mu|ga|njej|nje|njo)\b/i.test(text)
 }
 
+const normStr = (s) => s.toLowerCase().replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z').replace(/đ/g, 'd')
+
+// Stem: strip up to 2 chars to match declined Slovenian forms (Sršenu→Sršen, Verberja→Verber)
+const stemStr = (s) => {
+  const n = normStr(s)
+  if (n.length <= 4) return n
+  return n.slice(0, n.length - 2)  // Sršenu(6)→Srše(4)+%, Heričku(7)→Heric(5)+%
+}
+
+const PERSON_SELECT = `
+  SELECT o.id, o.ime, o.priimek, o.tip, o.opis, o.institucija, o.profil_url,
+    JSON_AGG(JSON_BUILD_OBJECT('podjetje', d.popolno_ime, 'vloga', p.vloga))
+      FILTER (WHERE d.id IS NOT NULL) AS povezave
+  FROM osebe o
+  LEFT JOIN povezave p ON p.oseba_id = o.id
+  LEFT JOIN podjetja d ON d.id = p.podjetje_id`
+
+function personSummary(o) {
+  const topConn = (o.povezave || []).slice(0, 5).map(p => `${p.podjetje} (${p.vloga})`).join('; ') || 'ni podatka'
+  return [
+    `Ime: ${o.ime} ${o.priimek}`,
+    `Tip: ${o.tip || 'ni podatka'}`,
+    `Institucija: ${o.institucija || 'ni podatka'}`,
+    `Opis/vloga: ${o.opis || 'ni podatka'}`,
+    `Skupaj poslovnih povezav: ${o.povezave?.length || 0}`,
+    o.povezave?.length ? `Nekatere organizacije: ${topConn}` : ''
+  ].filter(Boolean).join('\n')
+}
+
 async function lookupPersonInDB(nameStr, pool) {
   const parts = nameStr.trim().split(/\s+/)
   if (parts.length < 2) return null
   try {
-    const norm = (s) => s.toLowerCase().replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z').replace(/đ/g, 'd')
-    const p1 = parts[0], p2 = parts[1]
-    const n1 = norm(p1), n2 = norm(p2)
-    const r = await pool.query(`
-      SELECT o.id, o.ime, o.priimek, o.tip, o.opis, o.institucija, o.profil_url,
-        JSON_AGG(JSON_BUILD_OBJECT('podjetje', d.popolno_ime, 'vloga', p.vloga))
-          FILTER (WHERE d.id IS NOT NULL) AS povezave
-      FROM osebe o
-      LEFT JOIN povezave p ON p.oseba_id = o.id
-      LEFT JOIN podjetja d ON d.id = p.podjetje_id
+    const [p1, p2] = parts
+    const [n1, n2] = [normStr(p1), normStr(p2)]
+    const [s1, s2] = [stemStr(p1), stemStr(p2)]
+
+    // Attempt 1: exact + translate match
+    let r = await pool.query(`${PERSON_SELECT}
       WHERE (o.ime ILIKE $1 AND o.priimek ILIKE $2) OR (o.ime ILIKE $2 AND o.priimek ILIKE $1)
          OR (translate(LOWER(o.ime),'čćšžđ','ccszd') ILIKE $3 AND translate(LOWER(o.priimek),'čćšžđ','ccszd') ILIKE $4)
          OR (translate(LOWER(o.ime),'čćšžđ','ccszd') ILIKE $4 AND translate(LOWER(o.priimek),'čćšžđ','ccszd') ILIKE $3)
       GROUP BY o.id LIMIT 3
     `, [`%${p1}%`, `%${p2}%`, `%${n1}%`, `%${n2}%`])
+
+    // Attempt 2: stem prefix search — handles declined forms (Sršenu→Srše%, Heričku→Heric%)
+    if (!r.rows.length) {
+      r = await pool.query(`${PERSON_SELECT}
+        WHERE (translate(LOWER(o.ime),'čćšžđ','ccszd') LIKE $1 AND translate(LOWER(o.priimek),'čćšžđ','ccszd') LIKE $2)
+           OR (translate(LOWER(o.ime),'čćšžđ','ccszd') LIKE $2 AND translate(LOWER(o.priimek),'čćšžđ','ccszd') LIKE $1)
+        GROUP BY o.id LIMIT 3
+      `, [`${s1}%`, `${s2}%`])
+    }
+
+    // Attempt 3: consonant-skeleton match — handles LLM vowel insertions (Sresen→srsn = Sršen→srsn)
+    if (!r.rows.length) {
+      const cskel = (s) => normStr(s).replace(/[aeiou]/g, '')
+      const c1 = cskel(p1), c2 = cskel(p2)
+      if (c1.length >= 3 && c2.length >= 3) {
+        r = await pool.query(`${PERSON_SELECT}
+          WHERE (regexp_replace(translate(LOWER(o.ime),'čćšžđ','ccszd'),'[aeiou]','','g') LIKE $1
+                 AND regexp_replace(translate(LOWER(o.priimek),'čćšžđ','ccszd'),'[aeiou]','','g') LIKE $2)
+              OR (regexp_replace(translate(LOWER(o.ime),'čćšžđ','ccszd'),'[aeiou]','','g') LIKE $2
+                 AND regexp_replace(translate(LOWER(o.priimek),'čćšžđ','ccszd'),'[aeiou]','','g') LIKE $1)
+          GROUP BY o.id LIMIT 3
+        `, [`${c1}%`, `${c2}%`])
+      }
+    }
+
     if (!r.rows.length) return null
     const o = r.rows[0]
-    const topConnections = (o.povezave || []).slice(0, 5).map(p => `${p.podjetje} (${p.vloga})`).join('; ') || 'ni podatka'
-    const totalConnections = o.povezave?.length || 0
-    return {
-      osebe: r.rows,
-      summary: [
-        `Ime: ${o.ime} ${o.priimek}`,
-        `Tip: ${o.tip || 'ni podatka'}`,
-        `Institucija: ${o.institucija || 'ni podatka'}`,
-        `Opis/vloga: ${o.opis || 'ni podatka'}`,
-        `Skupaj poslovnih povezav: ${totalConnections}`,
-        totalConnections > 0 ? `Nekatere organizacije: ${topConnections}` : ''
-      ].filter(Boolean).join('\n')
-    }
+    return { osebe: r.rows, summary: personSummary(o) }
   } catch { return null }
 }
 
@@ -581,12 +619,62 @@ async function toolSearchAkademiki() {
   return r.rows.map(o => `${o.ime} ${o.priimek} — ${o.institucija || o.opis || ''}`).join('\n')
 }
 
+async function toolSearchPersons(keyword) {
+  // Try full phrase first, then fall back to individual significant words
+  const kw = `%${keyword}%`
+  let r = await pool.query(`
+    SELECT id, ime, priimek, tip, institucija, opis FROM osebe
+    WHERE opis ILIKE $1 OR institucija ILIKE $1 OR CONCAT(ime,' ',priimek) ILIKE $1
+    ORDER BY tip, priimek LIMIT 12
+  `, [kw])
+
+  if (!r.rows.length) {
+    // Try each word with stem (handles declined forms & multi-word keyword)
+    const words = keyword.split(/\s+/).filter(w => w.length > 3).map(w => normStr(w).slice(0, -1))
+    if (words.length) {
+      const conditions = words.map((_, i) =>
+        `(translate(LOWER(opis),'čćšžđ','ccszd') ILIKE $${i+1} OR translate(LOWER(institucija),'čćšžđ','ccszd') ILIKE $${i+1})`
+      ).join(' OR ')
+      r = await pool.query(
+        `SELECT id, ime, priimek, tip, institucija, opis FROM osebe WHERE ${conditions} ORDER BY tip, priimek LIMIT 12`,
+        words.map(w => `%${w}%`)
+      )
+    }
+  }
+
+  if (!r.rows.length) return `Ni oseb za iskanje "${keyword}".`
+  return r.rows.map(o => `${o.ime} ${o.priimek} — ${o.tip || ''}, ${o.institucija || o.opis || ''}`).join('\n')
+}
+
+async function toolComparePersons(name1, name2) {
+  const [res1, res2] = await Promise.all([lookupPersonInDB(name1, pool), lookupPersonInDB(name2, pool)])
+  if (!res1) return `Oseba "${name1}" ni v bazi.`
+  if (!res2) return `Oseba "${name2}" ni v bazi.`
+  const [o1, o2] = [res1.osebe[0], res2.osebe[0]]
+  const r = await pool.query(`
+    SELECT d.popolno_ime, p1.vloga AS vloga1, p2.vloga AS vloga2
+    FROM povezave p1
+    JOIN povezave p2 ON p2.podjetje_id = p1.podjetje_id AND p2.oseba_id = $2
+    JOIN podjetja d ON d.id = p1.podjetje_id
+    WHERE p1.oseba_id = $1 LIMIT 10
+  `, [o1.id, o2.id])
+  if (!r.rows.length) {
+    return `${o1.ime} ${o1.priimek} (${o1.tip}, ${o1.institucija || ''}) in ${o2.ime} ${o2.priimek} (${o2.tip}, ${o2.institucija || ''}) nimata skupnih organizacij v bazi.`
+  }
+  const skupne = r.rows.map(row => `${row.popolno_ime} — ${o1.ime}: ${row.vloga1}, ${o2.ime}: ${row.vloga2}`).join('\n')
+  return `${o1.ime} ${o1.priimek} in ${o2.ime} ${o2.priimek} sta skupaj v ${r.rows.length} organizacijah:\n${skupne}`
+}
+
 async function toolGetPersonArticles(name) {
   const parts = name.trim().split(/\s+/)
   if (parts.length < 2) return 'Ni dovolj podatkov za iskanje.'
-  const norm = (s) => s.toLowerCase().replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z').replace(/đ/g, 'd')
-  const [p1, p2] = parts
-  const n1 = norm(p1), n2 = norm(p2)
+
+  // Get canonical name from DB (handles declined/mistransliterated forms)
+  const found = await lookupPersonInDB(name, pool)
+  const canonicalName = found ? `${found.osebe[0].ime} ${found.osebe[0].priimek}` : name
+  const canonParts = canonicalName.trim().split(/\s+/)
+  const [p1, p2] = canonParts.length >= 2 ? canonParts : parts
+  const n1 = normStr(p1), n2 = normStr(p2)
 
   // Try join via clanki_osebe first, fall back to title search
   let r = await pool.query(`
@@ -600,18 +688,20 @@ async function toolGetPersonArticles(name) {
   `, [`%${p1}%`, `%${p2}%`, `%${n1}%`, `%${n2}%`])
 
   if (!r.rows.length) {
-    // Fallback: search article titles
+    const [s1, s2] = [stemStr(p1), stemStr(p2)]
+    // Fallback: search article titles with exact and stem match
     r = await pool.query(`
       SELECT naslov, url, datum, vir FROM clanki
-      WHERE naslov ILIKE $1 OR naslov ILIKE $2
-         OR (translate(LOWER(naslov),'čćšžđ','ccszd') ILIKE $3 AND translate(LOWER(naslov),'čćšžđ','ccszd') ILIKE $4)
+      WHERE (naslov ILIKE $1 OR naslov ILIKE $2)
+         OR (translate(LOWER(naslov),'čćšžđ','ccszd') LIKE $3 AND translate(LOWER(naslov),'čćšžđ','ccszd') LIKE $4)
+         OR (translate(LOWER(naslov),'čćšžđ','ccszd') LIKE $4 AND translate(LOWER(naslov),'čćšžđ','ccszd') LIKE $3)
       ORDER BY datum DESC LIMIT 5
-    `, [`%${p1}%${p2}%`, `%${p2}%${p1}%`, `%${n1}%`, `%${n2}%`])
+    `, [`%${p1}%${p2}%`, `%${p2}%${p1}%`, `${s1}%`, `${s2}%`])
   }
 
   if (!r.rows.length) return `Za osebo "${name}" ni člankov v bazi.`
   return r.rows.map((c, i) =>
-    `${i + 1}. ${c.naslov} (${c.vir}, ${new Date(c.datum).toLocaleDateString('sl-SI')})\n   ${c.url}`
+    `${i + 1}. [${c.naslov}](${c.url}) — ${c.vir}, ${new Date(c.datum).toLocaleDateString('sl-SI')}`
   ).join('\n')
 }
 
@@ -678,6 +768,33 @@ const AI_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'search_persons',
+      description: 'Poišči osebe po ključni besedi, opisu, instituciji ali imenu. Uporabi za "kateri profesorji se ukvarjajo z X", "kdo dela na UM FERI", "poišči X po imenu".',
+      parameters: {
+        type: 'object',
+        properties: { keyword: { type: 'string', description: 'Iskalna beseda ali fraza, npr. "informatika", "UM FERI", "lobist"' } },
+        required: ['keyword']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'compare_persons',
+      description: 'Primerjaj dve osebi — poišči skupne organizacije in povezave. Uporabi za "Ali sta X in Y kdaj delala skupaj?", "Kaj imata skupnega X in Y?".',
+      parameters: {
+        type: 'object',
+        properties: {
+          name1: { type: 'string', description: 'Ime in priimek prve osebe' },
+          name2: { type: 'string', description: 'Ime in priimek druge osebe' }
+        },
+        required: ['name1', 'name2']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_person_articles',
       description: 'Pridobi zadnje novičarske članke o določeni osebi iz baze. Uporabi ko vprašajo "kateri so zadnji članki o X", "v čem se je X omenjal", ali splošno kot dopolnilo k lookup_person.',
       parameters: {
@@ -719,17 +836,26 @@ app.post('/ai/vprasaj', async (req, res) => {
 
     const SYSTEM = `Si profesionalni AI asistent za Povezava.si — slovensko bazo poslovnih in akademskih mrež.
 
-Razpoložljivi podatki v bazi: osebe (akademiki, podjetniki, lobisti), podjetja, poslovne povezave, novičarski članki o osebah.
+Razpoložljiva orodja:
+- lookup_person: podatki o specifični osebi (kdo je, kje dela, povezave)
+- search_persons: iskanje oseb po ključni besedi, opisu ali instituciji
+- compare_persons: skupne organizacije in povezave dveh oseb
+- get_company_staff: zaposleni in vodstvo podjetja
+- get_top_connected: osebe z največ poslovnimi vezami
+- get_akademiki: seznam akademikov na UM FERI
+- get_lobists: aktivni lobisti v registru
+- get_database_stats: statistike baze
+- get_person_articles: novičarski članki o osebi
+- search_web: spletno iskanje (ko oseba/podjetje ni v bazi)
 
-Kako odgovarjaš:
-- Vedno v slovenščini, v naravnem jeziku. Nikoli ne izpiši surovih podatkov — pretvori jih v jedrnat, lep odgovor.
-- Ko orodje vrne podatke o osebi: napiši 2–4 stavke (npr. "Jana Novak je redna profesorica na UM FERI, kjer vodi Laboratorij za ... Ima 45 poslovnih povezav.").
-- Ko orodje vrne seznam: prikaži ga z oštevilčenjem.
-- Ko orodje vrne "ni v bazi" + javne informacije s spleta: povzemi spletne informacije in jasno napomni, da oseba ni v bazi.
+Pravila:
+- Vedno odgovarjaj v slovenščini, v naravnem jeziku — nikoli ne kopiraj surovih podatkov iz orodij.
+- Iz podatkov orodja napiši 2–4 stavke jedrnatega odgovora.
+- Za seznam: prikaži z oštevilčenjem ali alinejami.
+- Ko orodje vrne "ni v bazi" + spletne info: povzemi splet in napomni, da oseba ni v bazi.
 - Ko te prosijo za profil/link: odgovori samo "Profil je prikazan spodaj."
-- Za vprašanja o člankiħ, novicah ali medijskem pojavljanju: pokliči get_person_articles.
 - Sledi kontekstu — ko se tema zamenja, upoštevaj novo temo.
-- Podatki iz orodij so edini vir resnice. Ne izmišljaj imen ali dejstev.`
+- Ne izmišljaj imen ali dejstev ki jih orodje ni vrnilo.`
 
     const messages = [
       { role: 'system', content: SYSTEM },
@@ -779,6 +905,8 @@ Kako odgovarjaš:
         else if (call.function.name === 'get_top_connected') result = await toolGetTopConnected(args.limit)
         else if (call.function.name === 'get_lobists') result = await toolGetLobists()
         else if (call.function.name === 'get_akademiki') result = await toolSearchAkademiki()
+        else if (call.function.name === 'search_persons') result = await toolSearchPersons(args.keyword)
+        else if (call.function.name === 'compare_persons') result = await toolComparePersons(args.name1, args.name2)
         else if (call.function.name === 'get_person_articles') result = await toolGetPersonArticles(args.name)
         else if (call.function.name === 'search_web') result = await searchWeb(args.query) || 'Ni rezultatov.'
 
