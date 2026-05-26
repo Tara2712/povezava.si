@@ -40,7 +40,7 @@
     [] graf clustri
     [] izvoz podatkov v pdf
 [x] Izvoz podatkov profila osebe v pdf
-[] Izvoz podatkov profila podjetja v pdf
+[x] Izvoz podatkov profila podjetja v pdf
 [] Scrapanje člankov
 [] Testiranje frontend
 [] Dokumentiranje Jira
