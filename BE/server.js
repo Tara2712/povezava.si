@@ -467,84 +467,340 @@ app.get('/pot', async (req, res) => {
 })
 
 // POST /ai/vprasaj — AI asistent (Gemini + Google Search, Groq fallback)
+// ── Helpers for the AI endpoint ──────────────────────────────────────────────
+
+const NAME_STOP = new Set([
+  // question/function words
+  'kdo','je','kaj','so','v','na','in','ali','da','se','mi','za','iz','bi','pa','ne','to','ta','po','od','do',
+  'pri','ko','kar','kje','kdaj','kako','zakaj','koga','koliko','katere','kateri','bila','bil','bil','sem',
+  'smo','ste','sta','si','me','te','ga','jo','nas','vas','jih','mu','ji','jim','tem','tej','teh','temu',
+  // verbs
+  'ima','nima','imajo','nimajo','dela','deluje','delajo','zivi','zivijo','vodi','vodijo','je','so','bo',
+  'bodo','bom','bos','bomo','boste','bosta','imam','imas','imamo','imate','imata',
+  // adjectives/adverbs
+  'največ','najmanj','malo','veliko','bolj','manj','najbolj','najbol','top','prvih','prv','samo','tudi',
+  'takoj','zdaj','tam','tu','takrat','potem','ker','torej','zato','ampak','toda','zelo','precej',
+  // nouns that are not names
+  'mrez','omrez','mreza','mreze','omrezje','pove','povezave','povezav','baza','bazah','bazi',
+  'podatki','podatkov','informacij','rezultati','odgovor','vprasanje','akademik','profesor',
+  'poslovnez','oseba','osebo','osebi','podjetje','podjetja','podjetij',
+  // profil request words
+  'povezavo','profil','link','prosim','lahko','daj','poišči','pokaži','odpri','poglej','najdi','posreduj',
+  // role words
+  'direktor','vodja','predsednik','zaposleni','uprava','ravnatelj','minister','lastnik'
+])
+
+function extractName(text) {
+  if (!text) return null
+  const cap = text.match(/[A-ZŠŽČĆĐ][a-zšžčćđ]+ [A-ZŠŽČĆĐ][a-zšžčćđ]+/)
+  if (cap) return cap[0]
+  const words = (text.toLowerCase().match(/[a-zšžčćđ]+/g) || []).filter(w => w.length > 2 && !NAME_STOP.has(w))
+  return words.length >= 2 ? `${words[0]} ${words[1]}` : null
+}
+
+function isFollowUp(text) {
+  return /\b(on|ona|njega|njemu|njem|njegov|njegova|njegovo|njegovi|njena|njeni|njeno|ji|mu|ga|njej|nje|njo)\b/i.test(text)
+}
+
+async function lookupPersonInDB(nameStr, pool) {
+  const parts = nameStr.trim().split(/\s+/)
+  if (parts.length < 2) return null
+  try {
+    const norm = (s) => s.toLowerCase().replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z').replace(/đ/g, 'd')
+    const p1 = parts[0], p2 = parts[1]
+    const n1 = norm(p1), n2 = norm(p2)
+    const r = await pool.query(`
+      SELECT o.id, o.ime, o.priimek, o.tip, o.opis, o.institucija, o.profil_url,
+        JSON_AGG(JSON_BUILD_OBJECT('podjetje', d.popolno_ime, 'vloga', p.vloga))
+          FILTER (WHERE d.id IS NOT NULL) AS povezave
+      FROM osebe o
+      LEFT JOIN povezave p ON p.oseba_id = o.id
+      LEFT JOIN podjetja d ON d.id = p.podjetje_id
+      WHERE (o.ime ILIKE $1 AND o.priimek ILIKE $2) OR (o.ime ILIKE $2 AND o.priimek ILIKE $1)
+         OR (translate(LOWER(o.ime),'čćšžđ','ccszd') ILIKE $3 AND translate(LOWER(o.priimek),'čćšžđ','ccszd') ILIKE $4)
+         OR (translate(LOWER(o.ime),'čćšžđ','ccszd') ILIKE $4 AND translate(LOWER(o.priimek),'čćšžđ','ccszd') ILIKE $3)
+      GROUP BY o.id LIMIT 3
+    `, [`%${p1}%`, `%${p2}%`, `%${n1}%`, `%${n2}%`])
+    if (!r.rows.length) return null
+    const o = r.rows[0]
+    const connections = (o.povezave || []).slice(0, 8).map(p => `${p.podjetje} (${p.vloga})`).join(', ') || '/'
+    let profilExtra = ''
+    if (o.tip === 'akademik' && o.profil_url) {
+      const scraped = await fetchProfilData(o.profil_url)
+      if (scraped) profilExtra = `\n\nSpletni profil (${o.profil_url}):\n${scraped.slice(0, 1500)}`
+    }
+    return {
+      osebe: r.rows,
+      summary: `**${o.ime} ${o.priimek}** — ${o.tip}, ${o.institucija || ''}\nOpis: ${o.opis || '/'}\nPovezave (${o.povezave?.length || 0}): ${connections}${profilExtra}`
+    }
+  } catch { return null }
+}
+
+// ── Tool implementations ──────────────────────────────────────────────────────
+
+async function toolLookupPerson(name) {
+  const result = await lookupPersonInDB(name, pool)
+  if (!result) return { found: false, message: `Oseba "${name}" ni v bazi Povezava.si.`, osebe: null }
+  return { found: true, osebe: result.osebe, message: result.summary }
+}
+
+async function toolGetStats() {
+  const r = await pool.query(`SELECT (SELECT COUNT(*) FROM osebe) AS osebe,(SELECT COUNT(*) FROM podjetja) AS podjetja,(SELECT COUNT(*) FROM povezave) AS povezave`)
+  const s = r.rows[0]
+  return `V bazi je ${s.osebe} oseb, ${s.podjetja} podjetij in ${s.povezave} poslovnih povezav.`
+}
+
+async function toolGetCompanyStaff(company) {
+  const stem = company.length > 4 ? company.replace(/[aeiouAEIOU]$/, '') : company
+  const r = await pool.query(`
+    SELECT o.id, o.ime, o.priimek, p.vloga, d.popolno_ime AS podjetje
+    FROM osebe o JOIN povezave p ON p.oseba_id=o.id JOIN podjetja d ON d.id=p.podjetje_id
+    WHERE d.popolno_ime ILIKE $1 OR d.popolno_ime ILIKE $2
+    ORDER BY p.vloga LIMIT 12
+  `, [`%${company}%`, `%${stem}%`])
+  if (!r.rows.length) return `Podjetje "${company}" ni najdeno v bazi.`
+  return `${r.rows[0].podjetje}: ${r.rows.map(o => `${o.ime} ${o.priimek} (${o.vloga})`).join(', ')}`
+}
+
+async function toolGetTopConnected(limit = 5) {
+  const n = parseInt(limit) || 5
+  const r = await pool.query(`SELECT o.id,o.ime,o.priimek,COUNT(p.id) AS n FROM osebe o JOIN povezave p ON p.oseba_id=o.id GROUP BY o.id ORDER BY n DESC LIMIT $1`, [n])
+  return r.rows.map((o, i) => `${i + 1}. ${o.ime} ${o.priimek} — ${o.n} povezav`).join('\n')
+}
+
+async function toolGetLobists() {
+  const r = await pool.query(`SELECT COUNT(*) AS n FROM lobisti_info WHERE aktiven = true`)
+  return `V registru je ${r.rows[0].n} aktivnih lobistov.`
+}
+
+async function toolSearchAkademiki() {
+  const r = await pool.query(`SELECT id, ime, priimek, opis, institucija FROM osebe WHERE tip = 'akademik' ORDER BY priimek LIMIT 10`)
+  return r.rows.map(o => `${o.ime} ${o.priimek} — ${o.institucija || o.opis || ''}`).join('\n')
+}
+
+const AI_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'lookup_person',
+      description: 'Poišči osebo v bazi Povezava.si po imenu in priimku. Uporabi za VSA vprašanja o specifični osebi (kdo je, kje dela, profil, projekti, itd.).',
+      parameters: {
+        type: 'object',
+        properties: { name: { type: 'string', description: 'Ime in priimek, npr. "Marjan Heričko" ali "Domen Verber"' } },
+        required: ['name']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_database_stats',
+      description: 'Pridobi statistike baze: koliko oseb, podjetij in poslovnih povezav je v Povezava.si.',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_company_staff',
+      description: 'Poišči osebe ki delajo ali so delali v določenem podjetju ali organizaciji. Uporabi za "kdo je direktor X", "kdo dela v X", "uprava X".',
+      parameters: {
+        type: 'object',
+        properties: { company: { type: 'string', description: 'Ime podjetja, npr. "Petrol", "NLB", "Telekom"' } },
+        required: ['company']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_top_connected',
+      description: 'Pridobi seznam oseb z največ poslovnimi povezavami v bazi.',
+      parameters: {
+        type: 'object',
+        properties: { limit: { type: 'string', description: 'Koliko rezultatov (privzeto 5), npr. "5" ali "10"' } }
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_lobists',
+      description: 'Pridobi informacije o lobistih v registru.',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_akademiki',
+      description: 'Pridobi seznam akademikov (profesorjev) iz baze, zlasti z UM FERI.',
+      parameters: { type: 'object', properties: {} }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_web',
+      description: 'Poišči informacije na spletu. Uporabi SAMO ko oseba ni v bazi ali ko vprašanje zahteva aktualne/spletne informacije.',
+      parameters: {
+        type: 'object',
+        properties: { query: { type: 'string', description: 'Iskalni niz za spletno iskanje' } },
+        required: ['query']
+      }
+    }
+  }
+]
+
+// ── Main AI endpoint ──────────────────────────────────────────────────────────
+
 app.post('/ai/vprasaj', async (req, res) => {
   const { vprasanje, history } = req.body
   if (!vprasanje?.trim()) return res.status(400).json({ error: 'Manjka vprašanje' })
 
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('Access-Control-Allow-Origin', '*')
+
+  const emit = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`)
+
   try {
-    const context = await gatherContext(vprasanje, pool, history || [])
+    const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://api.groq.com/openai/v1' })
 
-    const historyText = (history || []).slice(-6)
-      .map(m => `${m.role === 'user' ? 'Uporabnik' : 'Asistent'}: ${m.text}`)
-      .join('\n')
+    const SYSTEM = `Si profesionalni AI asistent za Povezava.si — slovensko spletno bazo poslovnih in akademskih mrež v Sloveniji. Baza vsebuje osebe (akademike, podjetnike, lobiste), podjetja in poslovne povezave med njimi.
 
-    const prompt = `Si strokovni asistent za Povezava.si — slovensko bazo poslovnih in akademskih mrež.
+PRAVILA:
+- Odgovarjaj VEDNO v slovenščini.
+- Ko orodje vrne podatke, jih VEDNO navedi v odgovoru — ne izpusti nobenih imen ali številk.
+- Ko orodje vrne seznam oseb, prikaži celoten seznam s formatiranim izpisom.
+- Ko orodje vrne "ni v bazi", sporoči to jasno in ne izmišljaj podatkov.
+- Sledi kontekstu pogovora — ko se tema zamenja, upoštevaj NOVO temo.
+- Ko te IZRECNO prosijo za profil ali za link do profila osebe (npr. "pokaži profil", "pošlji link"), odgovori "Profil je prikazan spodaj." Za splošna vprašanja o osebi (npr. "Kdo je X?", "Kaj dela X?") pa prikaži informacije iz orodja.
+- Podatki iz orodij so EDINI vir resnice za bazo. Ne dodajaj imen, ki jih orodje ni vrnilo.
+- Za vprašanja o tem, kaj je Povezava.si: je slovenska podatkovna baza poslovnih in akademskih mrež, ki zbira informacije o osebah in podjetjih ter njihovih medsebojnih povezavah.`
 
-Podatki iz naše baze:
-${JSON.stringify(context.podatki)}
-Povzetek iz baze: ${context.fallbackOdgovor}
-${historyText ? `\nZgodovina pogovora:\n${historyText}` : ''}
+    const messages = [
+      { role: 'system', content: SYSTEM },
+      ...(history || []).slice(-8).map(m => ({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: (m.text || '').slice(0, 600)
+      })).filter(m => m.content),
+      { role: 'user', content: vprasanje }
+    ]
 
-Vprašanje: "${vprasanje}"
+    // Step 1: Let LLM decide which tool(s) to call
+    const toolResponse = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      tools: AI_TOOLS,
+      tool_choice: 'auto',
+      max_tokens: 300,
+      temperature: 0.1
+    })
 
-Navodila:
-- Odgovori v slovenščini
-- Uporabi podatke iz baze KOT TUDI svoje znanje o slovenskih akademikih, podjetjih in poslovnem prostoru
-- Za akademike: navedi njihove projekte, publikacije, področja raziskovanja, dosežke — kar veš
-- Odgovor naj bo informativen in konkreten (3-5 stavkov)
-- Ne reci "nimam podatkov v bazi" — poišči v svojem znanju`
+    const assistantMsg = toolResponse.choices[0].message
+    let profil = null
 
-    let odgovor = null
-    let vir = 'sistem'
+    // Step 2: Execute tool calls
+    if (assistantMsg.tool_calls?.length) {
+      messages.push(assistantMsg)
 
-    // 1. Gemini (z obsežnim znanjem o slovenskem akademskem in poslovnem prostoru)
-    if (process.env.GEMINI_API_KEY) {
-      try {
-        const { GoogleGenAI } = require('@google/genai')
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-        const resp = await ai.models.generateContent({
-          model: 'gemini-2.0-flash',
-          contents: prompt
-        })
-        odgovor = resp.text?.trim() || null
-        if (odgovor) vir = 'gemini'
-      } catch (e) {
-        console.warn('Gemini napaka:', e.message)
+      for (const call of assistantMsg.tool_calls) {
+        let args = {}
+        try { args = JSON.parse(call.function.arguments) || {} } catch {}
+
+        let result = ''
+        if (call.function.name === 'lookup_person') {
+          const r = await toolLookupPerson(args.name)
+          if (r.found) { profil = r.osebe[0] }
+          result = r.message
+        }
+        else if (call.function.name === 'get_database_stats') result = await toolGetStats()
+        else if (call.function.name === 'get_company_staff') result = await toolGetCompanyStaff(args.company)
+        else if (call.function.name === 'get_top_connected') result = await toolGetTopConnected(args.limit)
+        else if (call.function.name === 'get_lobists') result = await toolGetLobists()
+        else if (call.function.name === 'get_akademiki') result = await toolSearchAkademiki()
+        else if (call.function.name === 'search_web') result = await searchWeb(args.query) || 'Ni rezultatov.'
+
+        messages.push({ role: 'tool', tool_call_id: call.id, content: result })
       }
     }
 
-    // 2. Groq fallback (llama-3.3-70b)
-    if (!odgovor && process.env.GROQ_API_KEY) {
-      try {
-        const groq = new OpenAI({
-          apiKey: process.env.GROQ_API_KEY,
-          baseURL: 'https://api.groq.com/openai/v1'
-        })
-        const chatMessages = (history || []).slice(-4).map(m => ({
-          role: m.role === 'user' ? 'user' : 'assistant',
-          content: m.text
-        }))
-        chatMessages.push({ role: 'user', content: prompt })
-        const resp = await groq.chat.completions.create({
-          model: 'llama-3.3-70b-versatile',
-          messages: chatMessages,
-          max_tokens: 400,
-          temperature: 0.3
-        })
-        odgovor = resp.choices[0]?.message?.content?.trim() || null
-        if (odgovor) vir = 'groq'
-      } catch (_) {}
-    }
+    // Emit profile link metadata
+    emit({ meta: { podatki: { profil } } })
 
-    res.json({
-      odgovor: odgovor || context.fallbackOdgovor,
-      podatki: context.podatki,
-      vir
+    // Step 3: Stream final answer
+    emit({ vir: 'groq' })
+    const stream = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      max_tokens: 600,
+      temperature: 0.3,
+      stream: true
     })
+
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content || ''
+      if (text) emit({ chunk: text })
+    }
+    emit({ done: true })
+    res.end()
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error('AI napaka:', err.message, '\n', err.stack?.split('\n').slice(0, 4).join('\n'))
+    emit({ vir: 'sistem' })
+    emit({ chunk: 'Napaka pri procesiranju. Prosim poskusite znova.' })
+    emit({ done: true })
+    res.end()
   }
 })
+
+async function searchWeb(query) {
+  if (!process.env.TAVILY_API_KEY) return null
+  try {
+    const resp = await axios.post('https://api.tavily.com/search', {
+      api_key: process.env.TAVILY_API_KEY,
+      query: query + ' Slovenija',
+      search_depth: 'basic',
+      max_results: 4,
+      include_answer: true
+    }, { timeout: 8000 })
+    const answer = resp.data.answer || ''
+    const snippets = (resp.data.results || [])
+      .map(r => `[${r.title}]: ${r.content?.slice(0, 300)}`)
+      .join('\n')
+    return [answer, snippets].filter(Boolean).join('\n\n').slice(0, 2000)
+  } catch (e) {
+    console.warn('Tavily napaka:', e.message)
+    return null
+  }
+}
+
+async function fetchProfilData(url) {
+  if (!url) return null
+  try {
+    const resp = await axios.get(url, { timeout: 7000, headers: { 'User-Agent': 'Mozilla/5.0' } })
+    const text = resp.data
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<li>/gi, '\n- ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n')
+      .trim()
+
+    const projIdx = text.search(/Mednarodni projekti/i)
+    if (projIdx >= 0) {
+      const endIdx = text.search(/(?:Bibliografija|Kontakt|Nagrade|Povezave|Izobraževanje)/i)
+      const end = endIdx > projIdx ? Math.min(endIdx, projIdx + 3000) : projIdx + 3000
+      return text.slice(projIdx, end).trim()
+    }
+    return text.slice(500, 2500)
+  } catch (e) {
+    console.warn('Scraping napaka:', e.message)
+    return null
+  }
+}
 
 async function gatherContext(q, pool, history = []) {
   const ql = q.toLowerCase()
@@ -563,32 +819,77 @@ async function gatherContext(q, pool, history = []) {
 
   let nameMatch = q.match(/[A-ZŠŽČĆĐ][a-zšžčćđ]+ [A-ZŠŽČĆĐ][a-zšžčćđ]+/)
 
-  // For follow-up questions without a name, look for the last name mentioned in history
+  // Also detect lowercase names (e.g. "kdo je luka pavlič", "povezavo na profil domen verber")
+  if (!nameMatch) {
+    const STOP = new Set([
+      'kdo','je','kaj','so','v','na','in','ali','da','se','mi','za','iz','bi','pa','ne','to','ta','po','od','do',
+      'pri','ko','kar','kje','kdaj','kako','zakaj','koga','katere','kateri','koliko','katero','bila','bil','ima',
+      'povezavo','profil','link','oseba','osebo','osebi','poisci','pokazi','odpri','poglej','najdi','posreduj',
+      'prosim','zdaj','lahko','daj','pošlji','poišči','pokaži','njegova','njeni','njegovi',
+      'direktor','vodja','predsednik','zaposleni','uprava','ravnatelj','minister','lastnik'
+    ])
+    const words = (q.toLowerCase().match(/[a-zšžčćđ]+/g) || []).filter(w => w.length > 2 && !STOP.has(w))
+    if (words.length >= 2) nameMatch = [`${words[0]} ${words[1]}`]
+  }
+
+  // For follow-up questions: search USER messages first (most reliable), then AI messages
   if (!nameMatch && history.length) {
-    for (let i = history.length - 1; i >= 0; i--) {
-      const m = (history[i].text || '').match(/[A-ZŠŽČĆĐ][a-zšžčćđ]+ [A-ZŠŽČĆĐ][a-zšžčćđ]+/)
+    const userMsgs = history.filter(m => m.role === 'user').reverse()
+    const aiMsgs = history.filter(m => m.role !== 'user').reverse()
+    for (const msg of [...userMsgs, ...aiMsgs]) {
+      const m = (msg.text || '').match(/[A-ZŠŽČĆĐ][a-zšžčćđ]+ [A-ZŠŽČĆĐ][a-zšžčćđ]+/)
       if (m) { nameMatch = m; break }
     }
   }
   if (nameMatch) {
     const parts = nameMatch[0].split(' ')
     const r = await pool.query(`
-      SELECT o.id, o.ime, o.priimek, o.tip, o.opis, o.institucija,
+      SELECT o.id, o.ime, o.priimek, o.tip, o.opis, o.institucija, o.profil_url,
         JSON_AGG(JSON_BUILD_OBJECT('podjetje', d.popolno_ime, 'vloga', p.vloga, 'podjetje_id', d.id))
           FILTER (WHERE d.id IS NOT NULL) AS povezave
       FROM osebe o
       LEFT JOIN povezave p ON p.oseba_id = o.id
       LEFT JOIN podjetja d ON d.id = p.podjetje_id
-      WHERE LOWER(o.ime) LIKE LOWER($1) OR LOWER(o.priimek) LIKE LOWER($2)
+      WHERE (o.ime ILIKE $1 AND o.priimek ILIKE $2) OR (o.ime ILIKE $2 AND o.priimek ILIKE $1)
       GROUP BY o.id LIMIT 3
     `, [`%${parts[0]}%`, `%${parts[1]}%`])
 
     if (r.rows.length) {
       const o = r.rows[0]
-      const pov = o.povezave?.slice(0, 3).map(p => p.podjetje).join(', ') || 'ni podatkov'
+      const pov = o.povezave?.slice(0, 5).map(p => p.podjetje).join(', ') || 'ni podatkov'
+      let profilInfo = ''
+      if (o.tip === 'akademik' && o.profil_url) {
+        const scraped = await fetchProfilData(o.profil_url)
+        if (scraped) profilInfo = `\n\nPodatki s spletnega profila (${o.profil_url}):\n${scraped}`
+      }
       return {
         podatki: { tip: 'oseba', osebe: r.rows },
-        fallbackOdgovor: `${o.ime} ${o.priimek} je ${o.tip === 'akademik' ? 'akademik' : 'poslovnež'} s ${o.povezave?.length || 0} poslovnimi povezavami. Povezan z: ${pov}.`
+        fallbackOdgovor: `${o.ime} ${o.priimek} je ${o.tip === 'akademik' ? 'akademik' : 'poslovnež'} s ${o.povezave?.length || 0} poslovnimi povezavami. Povezan z: ${pov}.${profilInfo}`
+      }
+    }
+  }
+
+  // Iskanje po podjetju — "direktor Petrola", "kdo vodi X", "zaposleni v X"
+  const podjetjeMatch = ql.match(/(?:direktor|vodja|uprava|zaposleni|dela v|vodi|predsednik)\s+(?:\w+\s+){0,2}(\w{3,})|(\w{4,})(?:'s| d\.o\.o\.| d\.d\.| s\.p\.| a\.s\.)?/i)
+  const podjetjeWord = q.match(/[A-ZŠŽČĆĐ][a-zšžčćđA-ZŠŽČĆĐ]{2,}(?:\s+[A-ZŠŽČĆĐ][a-zšžčćđ]+)?/)
+  if ((ql.includes('direktor') || ql.includes('vodi') || ql.includes('uprava') || ql.includes('predsednik') || ql.includes('zaposleni')) && podjetjeWord) {
+    const ime = podjetjeWord[0]
+    // Also try stem (remove Slovenian genitive ending -a/-e/-u)
+    const imeStem = ime.length > 4 ? ime.replace(/[aeiouAEIOUaeiou]$/u, '') : ime
+    const r = await pool.query(`
+      SELECT o.id, o.ime, o.priimek, p.vloga, d.popolno_ime AS podjetje
+      FROM osebe o
+      JOIN povezave p ON p.oseba_id = o.id
+      JOIN podjetja d ON d.id = p.podjetje_id
+      WHERE d.popolno_ime ILIKE $1 OR d.kratko_ime ILIKE $1 OR d.popolno_ime ILIKE $2 OR d.kratko_ime ILIKE $2
+      ORDER BY p.vloga ASC LIMIT 10
+    `, [`%${ime}%`, `%${imeStem}%`])
+    if (r.rows.length) {
+      const podjetjeIme = r.rows[0].podjetje
+      const osebe = r.rows.map(o => `${o.ime} ${o.priimek} (${o.vloga})`).join(', ')
+      return {
+        podatki: { tip: 'oseba', osebe: r.rows.map(o => ({ id: o.id, ime: o.ime, priimek: o.priimek })) },
+        fallbackOdgovor: `V podjetju ${podjetjeIme} so v bazi evidentirani: ${osebe}.`
       }
     }
   }
