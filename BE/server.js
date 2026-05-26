@@ -1,5 +1,6 @@
 require('dotenv').config()
 const express = require('express')
+const cors = require('cors')
 const { Pool } = require('pg')
 const axios = require('axios')
 const OpenAI = require('openai')
@@ -25,13 +26,38 @@ const pool = new Pool({
 })
 
 app.use(express.json())
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean)
 
-app.use((req, res, next) => {
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true)
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+
+    return callback(new Error(`CORS blokiran za origin: ${origin}`))
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}))
+
+app.options('*', cors())
+
+/* app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Headers', 'Content-Type')
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204)
+  }
+
   next()
-})
+}) */
 
 // Health check
 app.get('/', (req, res) => {
