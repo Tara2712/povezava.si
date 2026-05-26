@@ -523,15 +523,18 @@ async function lookupPersonInDB(nameStr, pool) {
     `, [`%${p1}%`, `%${p2}%`, `%${n1}%`, `%${n2}%`])
     if (!r.rows.length) return null
     const o = r.rows[0]
-    const connections = (o.povezave || []).slice(0, 8).map(p => `${p.podjetje} (${p.vloga})`).join(', ') || '/'
-    let profilExtra = ''
-    if (o.tip === 'akademik' && o.profil_url) {
-      const scraped = await fetchProfilData(o.profil_url)
-      if (scraped) profilExtra = `\n\nSpletni profil (${o.profil_url}):\n${scraped.slice(0, 1500)}`
-    }
+    const topConnections = (o.povezave || []).slice(0, 5).map(p => `${p.podjetje} (${p.vloga})`).join('; ') || 'ni podatka'
+    const totalConnections = o.povezave?.length || 0
     return {
       osebe: r.rows,
-      summary: `**${o.ime} ${o.priimek}** — ${o.tip}, ${o.institucija || ''}\nOpis: ${o.opis || '/'}\nPovezave (${o.povezave?.length || 0}): ${connections}${profilExtra}`
+      summary: [
+        `Ime: ${o.ime} ${o.priimek}`,
+        `Tip: ${o.tip || 'ni podatka'}`,
+        `Institucija: ${o.institucija || 'ni podatka'}`,
+        `Opis/vloga: ${o.opis || 'ni podatka'}`,
+        `Skupaj poslovnih povezav: ${totalConnections}`,
+        totalConnections > 0 ? `Nekatere organizacije: ${topConnections}` : ''
+      ].filter(Boolean).join('\n')
     }
   } catch { return null }
 }
@@ -668,17 +671,17 @@ app.post('/ai/vprasaj', async (req, res) => {
   try {
     const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://api.groq.com/openai/v1' })
 
-    const SYSTEM = `Si profesionalni AI asistent za Povezava.si — slovensko spletno bazo poslovnih in akademskih mrež v Sloveniji. Baza vsebuje osebe (akademike, podjetnike, lobiste), podjetja in poslovne povezave med njimi.
+    const SYSTEM = `Si profesionalni AI asistent za Povezava.si — slovensko bazo poslovnih in akademskih mrež.
 
-PRAVILA:
-- Odgovarjaj VEDNO v slovenščini.
-- Ko orodje vrne podatke, jih VEDNO navedi v odgovoru — ne izpusti nobenih imen ali številk.
-- Ko orodje vrne seznam oseb, prikaži celoten seznam s formatiranim izpisom.
-- Ko orodje vrne "ni v bazi", sporoči to jasno in ne izmišljaj podatkov.
-- Sledi kontekstu pogovora — ko se tema zamenja, upoštevaj NOVO temo.
-- Ko te IZRECNO prosijo za profil ali za link do profila osebe (npr. "pokaži profil", "pošlji link"), odgovori "Profil je prikazan spodaj." Za splošna vprašanja o osebi (npr. "Kdo je X?", "Kaj dela X?") pa prikaži informacije iz orodja.
-- Podatki iz orodij so EDINI vir resnice za bazo. Ne dodajaj imen, ki jih orodje ni vrnilo.
-- Za vprašanja o tem, kaj je Povezava.si: je slovenska podatkovna baza poslovnih in akademskih mrež, ki zbira informacije o osebah in podjetjih ter njihovih medsebojnih povezavah.`
+Kako odgovarjaš:
+- Vedno v slovenščini, v naravnem jeziku. Nikoli ne izpiši surovih podatkov iz orodij — pretvori jih v lepo oblikovan, jedrnat odgovor.
+- Ko orodje vrne podatke o osebi: napiši 2–4 stavke v naravnem jeziku (npr. "Jana Novak je redna profesorica na UM FERI, kjer vodi Laboratorij za ... Ima 45 poslovnih povezav, med njimi ...").
+- Ko orodje vrne seznam: prikaži ga kot urejen seznam z oštevilčenjem.
+- Ko orodje vrne "ni v bazi": jasno sporoči, da oseba ni v bazi, brez izmišljevanja.
+- Ko te prosijo za profil/link: odgovori samo "Profil je prikazan spodaj."
+- Sledi kontekstu — ko se tema zamenja, upoštevaj novo temo.
+- Podatki iz orodij so edini vir resnice. Ne dodajaj imen ali dejstev, ki jih orodje ni vrnilo.
+- Povezava.si je slovenska baza poslovnih in akademskih mrež z osebami, podjetji in njihovimi poslovnimi vezami.`
 
     const messages = [
       { role: 'system', content: SYSTEM },
