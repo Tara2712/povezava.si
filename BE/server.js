@@ -1,5 +1,4 @@
 require('dotenv').config()
-// v2.4 — Gemini + Google Search grounding, Groq fallback
 const express = require('express')
 const { Pool } = require('pg')
 const axios = require('axios')
@@ -13,7 +12,7 @@ const statsRoutes = require('./routes/stats')
 const lobistiRoutes = require('./routes/lobisti')
 const ovadeniRoutes = require('./routes/ovadeni')
 const bfsRoutes = require('./test6Degrees/bfs_nova')
-const geminiRoutes = require('./routes/gemini_ai')
+const { setupRoutes: setupGeminiAi2Routes } = require('./routes/gemini_ai2')
 const kordinateRoutes = require('./routes/kordinate')
 
 
@@ -57,7 +56,7 @@ app.use('/lobisti', lobistiRoutes)
 app.use('/api/ovadeni', ovadeniRoutes)
 app.use('/ovadeni', ovadeniRoutes)
 app.use('/kordinate', kordinateRoutes)
-geminiRoutes.setupRoutes(app)
+setupGeminiAi2Routes(app)
 
 // GET /osebe — seznam oseb (limit, tip opcijski)
 app.get('/osebe', async (req, res) => {
@@ -467,7 +466,7 @@ app.get('/pot', async (req, res) => {
 })
 
 // POST /ai/vprasaj — AI asistent (Gemini + Google Search, Groq fallback)
-app.post('/ai/vprasaj', async (req, res) => {
+/* app.post('/ai/vprasaj', async (req, res) => {
   const { vprasanje, history } = req.body
   if (!vprasanje?.trim()) return res.status(400).json({ error: 'Manjka vprašanje' })
 
@@ -540,7 +539,7 @@ Odgovori v slovenščini. Kombiniraj podatke iz baze z aktualnimi informacijami 
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
-})
+}) */
 
 async function gatherContext(q, pool, history = []) {
   const ql = q.toLowerCase()
