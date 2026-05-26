@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import Layout from '../components/Layout'
 import { API } from '../api'
 
@@ -54,7 +55,10 @@ function Message({ msg }) {
           <p className="ai-msg-text">{msg.text}</p>
         ) : (
           <div className="ai-msg-md">
-            <ReactMarkdown>{msg.text || ''}</ReactMarkdown>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{ a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" /> }}
+            >{msg.text || ''}</ReactMarkdown>
           </div>
         )}
         {msg.podatki?.profil && <ProfilLink oseba={msg.podatki.profil} />}
