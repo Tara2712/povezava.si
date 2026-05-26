@@ -4,6 +4,7 @@ const express = require('express')
 const { Pool } = require('pg')
 const axios = require('axios')
 const OpenAI = require('openai')
+const { GoogleGenerativeAI } = require('@google/generative-ai')
 const podjetjaRoutes = require('./routes/podjetja')
 const osebeRoutes = require('./routes/osebe')
 const omrezjeRoutes = require('./routes/omrezje')
@@ -917,26 +918,75 @@ Pravila:
     // Emit profile link metadata
     emit({ meta: { podatki: { profil } } })
 
-    // Step 3: Stream final answer
-    emit({ vir: 'groq' })
-    const stream = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages,
-      max_tokens: 600,
-      temperature: 0.3,
-      stream: true
-    })
-
-    for await (const chunk of stream) {
-      const text = chunk.choices[0]?.delta?.content || ''
-      if (text) emit({ chunk: text })
+    // Step 3: Stream final answer — Groq primary, Gemini fallback on 429
+    try {
+      emit({ vir: 'groq' })
+      const stream = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        max_tokens: 400,
+        temperature: 0.3,
+        stream: true
+      })
+      for await (const chunk of stream) {
+        const text = chunk.choices[0]?.delta?.content || ''
+        if (text) emit({ chunk: text })
+      }
+    } catch (groqErr) {
+      if (groqErr.status === 429 && process.env.GEMINI_API_KEY) {
+        // Groq rate-limited — use Gemini Flash as fallback
+        emit({ vir: 'gemini' })
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+        const prompt = messages.map(m => {
+          if (m.role === 'system') return `Navodila: ${m.content}`
+          if (m.role === 'user') return `Uporabnik: ${m.content}`
+          if (m.role === 'assistant') return `Asistent: ${m.content || ''}`
+          if (m.role === 'tool') return `Podatki iz baze: ${m.content}`
+          return ''
+        }).filter(Boolean).join('\n\n')
+        const result = await model.generateContentStream(prompt)
+        for await (const chunk of result.stream) {
+          const text = chunk.text()
+          if (text) emit({ chunk: text })
+        }
+      } else {
+        throw groqErr
+      }
     }
+
     emit({ done: true })
     res.end()
   } catch (err) {
-    console.error('AI napaka:', err.message, '\n', err.stack?.split('\n').slice(0, 4).join('\n'))
+    console.error('AI napaka:', err.message)
+    // Groq rate limit → full Gemini fallback (no tool data, but better than error)
+    if (err.status === 429 && process.env.GEMINI_API_KEY) {
+      try {
+        emit({ vir: 'gemini' })
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+        const fallbackPrompt = `Si asistent za Povezava.si — slovensko bazo poslovnih in akademskih mrež. Odgovori v slovenščini na naslednje vprašanje (opomni, da podatki iz baze trenutno niso dostopni):\n\n${vprasanje}`
+        let result
+        for (const mName of ['gemini-2.0-flash-001', 'gemini-2.5-flash']) {
+          try {
+            result = await genAI.getGenerativeModel({ model: mName }).generateContentStream(fallbackPrompt)
+            break
+          } catch {}
+        }
+        for await (const chunk of result.stream) {
+          const text = chunk.text()
+          if (text) emit({ chunk: text })
+        }
+        emit({ done: true })
+        return res.end()
+      } catch (gemErr) {
+        console.error('Gemini fallback napaka:', gemErr.message)
+      }
+    }
     emit({ vir: 'sistem' })
-    emit({ chunk: 'Napaka pri procesiranju. Prosim poskusite znova.' })
+    emit({ chunk: err.status === 429
+      ? 'Dnevni limit API-ja je dosežen. Poskusite znova jutri.'
+      : 'Napaka pri procesiranju. Prosim poskusite znova.'
+    })
     emit({ done: true })
     res.end()
   }
