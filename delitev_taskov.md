@@ -32,13 +32,15 @@
 [x] ajpes scraper za osebe in aktivnost podjetij
 [x] zemljevid slovenije - točke prikazujejo podjetja
     [x] geokodiranje lokacij
-    [] filtriranje zemljevida
-    [] iskanje po zemljevidu
+    [x] filtriranje zemljevida
+    [x] iskanje po zemljevidu
     [x] popravi backend (preveč obremnjen server)
 [x] osnovna logika grafa
     [] popravi izgled - FE
     [] graf clustri
     [] izvoz podatkov v pdf
+[] Izvoz podatkov profila osebe v pdf
+[] Izvoz podatkov profila podjetja v pdf
 [] Scrapanje člankov
 [] Testiranje frontend
 [] Dokumentiranje Jira
