@@ -105,6 +105,7 @@ Uporabnik te lahko vpraša karkoli:
 Odgovarjaj v slovenščini.
 
 Pravila:
+Vprašanje uporabnika je lahko aktualno. Če je aktualno, najprej preveri z Google Search.
 - Odgovori neposredno na vprašanje uporabnika.
 - Uporabi spletno iskanje, kadar je vprašanje aktualno, specifično ali zahteva preverjanje.
 - Ne išči samo entitet in ne primerjaj dveh entitet, razen če uporabnik to izrecno zahteva.
@@ -114,6 +115,10 @@ Pravila:
 - Odgovor naj bo uporaben, jasen in ne predolg.
 - Če je vprašanje povezano s Povezava.si, pojasni v kontekstu oseb, podjetij in javnih povezav.
 - Če vprašanje ni povezano s Povezava.si, vseeno normalno odgovori.
+- Za vprašanja, ki vsebujejo "trenutni", "zdaj", "danes", "aktualni", "kdo je predsednik", "kdo je minister", "kdo je direktor", moraš OBVEZNO uporabiti spletno iskanje.
+- Pri aktualnih funkcijah vedno preveri najnovejši vir.
+- Če najdeš vir, navedi tudi vir.
+- Ne odgovarjaj iz spomina pri aktualnih vprašanjih.
 
 Zadnja zgodovina pogovora:
 ${zgodovina || 'Ni prejšnje zgodovine.'}
@@ -125,7 +130,11 @@ ${vprasanje}
       const response = await generateWithFallback({
         contents: prompt,
         config: {
-          tools: [groundingTool]
+            tools: [
+                {
+                googleSearch: {}
+                }
+            ]
         }
       })
 

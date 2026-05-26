@@ -203,30 +203,45 @@ export default function Asistent() {
   }, [messages, tab])
 
   async function send(text) {
-    const q = (text || input).trim()
-    if (!q || loading) return
-    setInput('')
-    setMessages(prev => [...prev, { role: 'user', text: q }])
-    setLoading(true)
-    try {
-      const r = await fetch(`${API}/ai/vprasaj`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vprasanje: q, history: messages.slice(-6) })
-      })
-      const data = await r.json()
-      setMessages(prev => [...prev, {
-        role: 'ai',
-        text: data.odgovor || 'Ni odgovora.',
-        podatki: data.podatki,
-        vir: data.vir
-      }])
-    } catch (_) {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Napaka pri klicu strežnika. Preverite zvezo.', vir: 'sistem' }])
+  const q = (text || input).trim()
+  if (!q || loading) return
+
+  setInput('')
+  setMessages(prev => [...prev, { role: 'user', text: q }])
+  setLoading(true)
+
+  try {
+    const r = await fetch(`${API}/api/ai/vprasaj`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vprasanje: q, history: messages.slice(-6) })
+    })
+
+    const data = await r.json()
+
+    if (!r.ok) {
+      throw new Error(data.details || data.error || 'Napaka pri AI endpointu')
     }
-    setLoading(false)
-    inputRef.current?.focus()
+
+    setMessages(prev => [...prev, {
+      role: 'ai',
+      text: data.odgovor || 'Ni odgovora.',
+      podatki: data.podatki,
+      vir: data.vir
+    }])
+  } catch (error) {
+    console.error('AI frontend napaka:', error)
+
+    setMessages(prev => [...prev, {
+      role: 'ai',
+      text: `Napaka pri klicu strežnika: ${error.message}`,
+      vir: 'sistem'
+    }])
   }
+
+  setLoading(false)
+  inputRef.current?.focus()
+}
 
   function onKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
@@ -242,7 +257,7 @@ export default function Asistent() {
             </h1>
             <p className="ai-desc">
               {tab === 'ai'
-                ? 'Postavljajte vprašanja v naravnem jeziku — asistent poišče odgovore v bazi.'
+                ? 'Postavljajte vprašanja v naravnem jeziku — asistent odgovarja s pomočjo AI-ja in spletnega iskanja.'
                 : 'Klasično iskanje po osebah in podjetjih.'}
             </p>
           </div>
