@@ -712,6 +712,17 @@ async function toolGetPersonArticles(name) {
   ).join('\n')
 }
 
+async function toolGetFeriProfile(name) {
+  const result = await lookupPersonInDB(name, pool)
+  if (!result) return `Oseba "${name}" ni v bazi Povezava.si.`
+  const o = result.osebe[0]
+  if (o.tip !== 'akademik') return `${o.ime} ${o.priimek} ni akademik v bazi — ni FERI profila.`
+  if (!o.profil_url) return `${o.ime} ${o.priimek} nima profil URL-ja v bazi.`
+  const data = await fetchProfilData(o.profil_url)
+  if (!data) return `Ni mogoče pridobiti profila ${o.ime} ${o.priimek} s strani ${o.profil_url}.`
+  return `FERI profil — ${o.ime} ${o.priimek} (${o.profil_url}):\n\n${data}`
+}
+
 const AI_TOOLS = [
   {
     type: 'function',
@@ -822,6 +833,18 @@ const AI_TOOLS = [
         required: ['query']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_feri_profile',
+      description: 'Pridobi podroben FERI profil akademika — kontakt (e-pošta, telefon, pisarna), izobrazba (stopnje in leta), zaposlitev, raziskovalna področja, mednarodni projekti, mentorstvo. Uporabi ko sprašujejo za podrobnosti o profesorju ali asistentu z UM FERI.',
+      parameters: {
+        type: 'object',
+        properties: { name: { type: 'string', description: 'Ime in priimek akademika, npr. "Marjan Heričko"' } },
+        required: ['name']
+      }
+    }
   }
 ]
 
@@ -853,6 +876,7 @@ Razpoložljiva orodja:
 - get_lobists: aktivni lobisti v registru
 - get_database_stats: statistike baze
 - get_person_articles: novičarski članki o osebi
+- get_feri_profile: podroben FERI profil akademika (kontakt, izobrazba, področja, projekti)
 - search_web: spletno iskanje (ko oseba/podjetje ni v bazi)
 
 Pravila:
@@ -916,6 +940,7 @@ Pravila:
         else if (call.function.name === 'compare_persons') result = await toolComparePersons(args.name1, args.name2)
         else if (call.function.name === 'get_person_articles') result = await toolGetPersonArticles(args.name)
         else if (call.function.name === 'search_web') result = await searchWeb(args.query) || 'Ni rezultatov.'
+        else if (call.function.name === 'get_feri_profile') result = await toolGetFeriProfile(args.name)
 
         messages.push({ role: 'tool', tool_call_id: call.id, content: result })
       }
@@ -1022,23 +1047,40 @@ async function searchWeb(query) {
 async function fetchProfilData(url) {
   if (!url) return null
   try {
-    const resp = await axios.get(url, { timeout: 7000, headers: { 'User-Agent': 'Mozilla/5.0' } })
-    const text = resp.data
+    const resp = await axios.get(url, { timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0' } })
+    let html = resp.data
+
+    // Strip non-content blocks first so nav/header text doesn't bleed through
+    html = html
       .replace(/<script[\s\S]*?<\/script>/gi, '')
       .replace(/<style[\s\S]*?<\/style>/gi, '')
-      .replace(/<li>/gi, '\n- ')
+      .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+      .replace(/<header[\s\S]*?<\/header>/gi, '')
+      .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+      .replace(/<aside[\s\S]*?<\/aside>/gi, '')
+
+    // Convert structure to readable text
+    html = html
+      .replace(/<h[1-6][^>]*>/gi, '\n### ')
+      .replace(/<\/h[1-6]>/gi, '\n')
+      .replace(/<li[^>]*>/gi, '\n- ')
+      .replace(/<\/li>/gi, '')
+      .replace(/<p[^>]*>/gi, '\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/?(div|section|article|td|tr)[^>]*>/gi, '\n')
+      .replace(/<a[^>]*href="mailto:([^"]+)"[^>]*>/gi, (_, email) => email + ' ')
       .replace(/<[^>]+>/g, ' ')
       .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-      .replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
       .trim()
 
-    const projIdx = text.search(/Mednarodni projekti/i)
-    if (projIdx >= 0) {
-      const endIdx = text.search(/(?:Bibliografija|Kontakt|Nagrade|Povezave|Izobraževanje)/i)
-      const end = endIdx > projIdx ? Math.min(endIdx, projIdx + 3000) : projIdx + 3000
-      return text.slice(projIdx, end).trim()
-    }
-    return text.slice(500, 2500)
+    // Find where the actual profile content starts (first recognised section heading)
+    const PROFILE_SECTIONS = /Kontakt|Izobrazba|Zaposlitev|Področja|Projekti|Mednarodni|Bibliografija|Nagrade|Mentorstvo/i
+    const startIdx = html.search(PROFILE_SECTIONS)
+    if (startIdx > 50) html = html.slice(startIdx)
+
+    return html.slice(0, 3500).trim()
   } catch (e) {
     console.warn('Scraping napaka:', e.message)
     return null
