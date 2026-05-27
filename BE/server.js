@@ -28,18 +28,18 @@ const pool = new Pool({
 app.use(express.json())
 const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
-  .map(origin => origin.trim())
+  .map(o => o.trim())
   .filter(Boolean)
 
 app.use(cors({
-  origin: function (origin, callback) {
+  origin(origin, callback) {
     if (!origin) return callback(null, true)
 
     if (allowedOrigins.includes(origin)) {
       return callback(null, true)
     }
 
-    return callback(new Error(`CORS blokiran za origin: ${origin}`))
+    return callback(null, false)
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

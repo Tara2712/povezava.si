@@ -142,7 +142,7 @@ ${vprasanje}
 
       let odgovor = response.text || 'Ni odgovora.'
 
-      if (sources.length > 0) {
+      /* if (sources.length > 0) {
         const uniqueSources = []
         const seen = new Set()
 
@@ -158,7 +158,7 @@ ${vprasanje}
           .slice(0, 5)
           .map(source => `- ${source.title || source.url}: ${source.url}`)
           .join('\n')
-      }
+      } */
 
       return res.json({
         odgovor,
