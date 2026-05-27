@@ -881,10 +881,10 @@ Razpoložljiva orodja:
 
 Pravila:
 - Vedno odgovarjaj v slovenščini, v naravnem jeziku — nikoli ne kopiraj surovih podatkov iz orodij.
-- Iz podatkov orodja napiši 2–4 stavke jedrnatega odgovora.
-- Za seznam: prikaži z oštevilčenjem ali alinejami.
+- Iz podatkov orodja napiši jedrnat odgovor — za seznam uporabi alineje ali številke.
+- Ko te vprašajo za kontakt, izobrazbo, področja, projekte: odgovori konkretno iz podatkov orodja.
+- Ko te prosijo SAMO za link/URL do profila (ne za vsebino): odgovori samo "Profil je prikazan spodaj."
 - Ko orodje vrne "ni v bazi" + spletne info: povzemi splet in napomni, da oseba ni v bazi.
-- Ko te prosijo za profil/link: odgovori samo "Profil je prikazan spodaj."
 - Sledi kontekstu — ko se tema zamenja, upoštevaj novo temo.
 - Ne izmišljaj imen ali dejstev ki jih orodje ni vrnilo.`
 
@@ -924,6 +924,11 @@ Pravila:
           if (r.found) {
             profil = r.osebe[0]
             result = r.message
+            // Auto-enrich: if akademik has a FERI profile URL, fetch it automatically
+            if (profil?.tip === 'akademik' && profil?.profil_url?.includes('ii.feri.um.si')) {
+              const feriData = await fetchProfilData(profil.profil_url)
+              if (feriData) result += `\n\nPodrobni FERI profil:\n${feriData}`
+            }
           } else {
             // Auto web fallback when person not in DB
             const webResult = await searchWeb(`${args.name} Slovenija`)
