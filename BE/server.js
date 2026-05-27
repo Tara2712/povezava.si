@@ -611,8 +611,14 @@ async function toolGetTopConnected(limit = 5) {
 }
 
 async function toolGetLobists() {
-  const r = await pool.query(`SELECT COUNT(*) AS n FROM lobisti_info WHERE aktiven = true`)
-  return `V registru je ${r.rows[0].n} aktivnih lobistov.`
+  const r = await pool.query(`SELECT COUNT(*) AS n FROM lobisti_info WHERE datum_izpisa IS NULL`)
+  const sample = await pool.query(`
+    SELECT o.ime, o.priimek, l.delodajalec, l.narocnik
+    FROM lobisti_info l JOIN osebe o ON o.id = l.oseba_id
+    WHERE l.datum_izpisa IS NULL ORDER BY l.datum_vpisa DESC LIMIT 5
+  `)
+  const seznam = sample.rows.map(l => `${l.ime} ${l.priimek} (${l.delodajalec || l.narocnik || ''})`).join(', ')
+  return `V registru je ${r.rows[0].n} aktivnih lobistov. Nekateri: ${seznam}.`
 }
 
 async function toolSearchAkademiki() {
