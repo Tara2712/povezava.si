@@ -39,17 +39,13 @@ function jeRelevanten(naslov, opis) {
 }
 
 function jeVeljavnoIme(ime) {
-  if (!ime) return false
-  const clean = String(ime).trim()
-  // prekratko
-  if (clean.length < 3) return false
-  // samo začetnice ali kratice
-  if (/^[A-ZŽŠČĆĐ]{1,3}$/u.test(clean)) return false
-  // začetnice s pikami
-  if (/^([A-ZŽŠČĆĐ]\.){1,3}$/u.test(clean)) return false
-  // mora vsebovati male črke
-  if (!/[a-zžščćđ]/u.test(clean)) return false
-  return true
+  if (!ime) return false;
+  const clean = String(ime).trim().toUpperCase();
+  const blacklist = ['OO', 'IS', 'AZ', 'NN', 'VV']; 
+  if (blacklist.includes(clean)) return false;
+  if (clean.length < 3) return false;
+  if (clean.includes('.')) return false;
+  return true;
 }
 
 async function potegniRSS(url) {
@@ -96,7 +92,11 @@ async function potegniBesedilo(url) {
 }
 
 async function ekstrahirajPovezave(besedilo) {
-  const prompt = `Iz naslednjega slovenskega besedila izvleci vse osebe in organizacije ter njihove vloge.
+  const prompt = `Iz naslednjega slovenskega besedila izvleci vse osebe (polno ime in priimek) in organizacije ter njihove vloge.
+  STROGO PREPOVEDANO:
+- NE vračaj kratic, začetnic (npr. "J. Novak" ali "J. N."), ali generičnih kratic kot "OO", "IS", "NN".
+- Če oseba ni jasno imenovana s polnim imenom in priimkom, je ne vključi.
+- Če nisi 100% prepričan, da je oseba realna in polno imenovana, raje ne vrni ničesar.
 
 Vrni SAMO veljaven JSON (brez dodatnega besedila):
 {
@@ -236,7 +236,12 @@ async function glavnaFunkcija() {
           continue
         }
 
-        const podatki = await ekstrahirajPovezave(besedilo)
+        const podatki = await ekstrahirajPovezave(besedilo);
+        podatki.osebe = podatki.osebe.filter(o => 
+            jeVeljavnoIme(o.ime) && 
+            jeVeljavnoIme(o.priimek) &&
+            o.ime.toLowerCase() !== o.priimek.toLowerCase() // prepreči "OO OO"
+        );
         const shranjenih = await shraniVBazo(podatki, clanek.link)
 
         await pool.query(
