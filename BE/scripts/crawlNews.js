@@ -40,16 +40,16 @@ function jeRelevanten(naslov, opis) {
 
 function jeVeljavnoIme(ime) {
   if (!ime) return false
-  const clean = String(ime)
-    .replace(/\s+/g, '')
-    .trim()
-  if (/^[A-ZŽŠČ\.]{1,4}$/u.test(clean)) {
-    return false
-  }
-  if (!/[a-zžščćđ]/u.test(clean)) {
-    return false
-  }
-  return clean.length >= 2
+  const clean = String(ime).trim()
+  // prekratko
+  if (clean.length < 3) return false
+  // samo začetnice ali kratice
+  if (/^[A-ZŽŠČĆĐ]{1,3}$/u.test(clean)) return false
+  // začetnice s pikami
+  if (/^([A-ZŽŠČĆĐ]\.){1,3}$/u.test(clean)) return false
+  // mora vsebovati male črke
+  if (!/[a-zžščćđ]/u.test(clean)) return false
+  return true
 }
 
 async function potegniRSS(url) {
@@ -149,7 +149,12 @@ async function shraniVBazo(podatki, vir) {
 
     for (const oseba of podatki.osebe || []) {
 
-    if (!jeVeljavnoIme(oseba.ime) || !jeVeljavnoIme(oseba.priimek)) {
+    if (
+      !jeVeljavnoIme(oseba.ime) ||
+      !jeVeljavnoIme(oseba.priimek) ||
+      oseba.ime.length < 3 ||
+      oseba.priimek.length < 3
+    ) {
       console.log(`    [!] Preskočim neveljavno osebo: ${oseba.ime} ${oseba.priimek}`)
       continue
     }
@@ -167,10 +172,15 @@ async function shraniVBazo(podatki, vir) {
   }
 
   for (const p of podatki.povezave || []) {
-    if (!jeVeljavnoIme(p.oseba_ime) || !jeVeljavnoIme(p.oseba_priimek)) {
-      console.log(`    [!] Preskočim neveljavno povezavo: ${p.oseba_ime} ${p.oseba_priimek}`)
-      continue
-    }
+    if (
+        !jeVeljavnoIme(p.oseba_ime) ||
+        !jeVeljavnoIme(p.oseba_priimek) ||
+        p.oseba_ime.length < 3 ||
+        p.oseba_priimek.length < 3
+      ) {
+        console.log(`    [!] Preskočim neveljavno povezavo: ${p.oseba_ime} ${p.oseba_priimek}`)
+        continue
+      }
     const o = await pool.query(`SELECT id FROM osebe WHERE ime=$1 AND priimek=$2`, [p.oseba_ime, p.oseba_priimek])
     const d = await pool.query(`SELECT id FROM podjetja WHERE popolno_ime=$1`, [p.podjetje])
     if (o.rows.length > 0 && d.rows.length > 0) {
