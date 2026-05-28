@@ -18,6 +18,7 @@ import PodjetjaList from './pages/Podjetja'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Zemljevid from './pages/Zemljevid'
+import Search from './pages/Search'
 
 function PrivateRoutes() {
   return (
@@ -37,6 +38,7 @@ function PrivateRoutes() {
         <Route path="/asistent" element={<Asistent />} />
         <Route path="/profil" element={<MojProfil />} />
         <Route path="/primerjava" element={<Primerjava />} />
+        <Route path="/search" element={<Search />} />
       </Routes>
     </PrivateRoute>
   )
