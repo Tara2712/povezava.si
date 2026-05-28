@@ -40,11 +40,12 @@ function jeRelevanten(naslov, opis) {
 
 function jeVeljavnoIme(ime) {
   if (!ime) return false;
-  const clean = String(ime).trim().toUpperCase();
-  const blacklist = ['OO', 'IS', 'AZ', 'NN', 'VV']; 
+  // Odstrani vse, kar ni črka (presledke, pike)
+  const clean = String(ime).replace(/[^a-zžščćđ]/gi, '').toUpperCase();
+  const blacklist = ['OO', 'IS', 'AZ', 'NN', 'VV', 'OI', 'SI']; 
   if (blacklist.includes(clean)) return false;
   if (clean.length < 3) return false;
-  if (clean.includes('.')) return false;
+  
   return true;
 }
 
@@ -125,7 +126,15 @@ Besedilo: ${besedilo}`
 
   const clean = response.choices[0].message.content.trim()
     .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-  return JSON.parse(clean)
+
+  const pod = JSON.parse(clean);
+  pod.osebe = pod.osebe.filter(o => 
+    o.ime.replace(/\s/g, '').length > 2 && 
+    o.priimek.replace(/\s/g, '').length > 2 &&
+    !o.ime.toUpperCase().includes('OO') &&
+    !o.priimek.toUpperCase().includes('IS')
+  );
+  return pod;
 }
 
 async function jeZeObdelan(url) {
@@ -240,7 +249,7 @@ async function glavnaFunkcija() {
         podatki.osebe = podatki.osebe.filter(o => 
             jeVeljavnoIme(o.ime) && 
             jeVeljavnoIme(o.priimek) &&
-            o.ime.toLowerCase() !== o.priimek.toLowerCase() // prepreči "OO OO"
+            o.ime.toLowerCase() !== o.priimek.toLowerCase()
         );
         const shranjenih = await shraniVBazo(podatki, clanek.link)
 
