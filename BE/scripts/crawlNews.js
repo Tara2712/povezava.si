@@ -40,10 +40,15 @@ function jeRelevanten(naslov, opis) {
 
 function jeVeljavnoIme(ime) {
   if (!ime) return false
-
-  const clean = ime.trim()
-  if (/^[A-ZŽŠČ]{1,3}\.?$/u.test(clean)) return false
-
+  const clean = String(ime)
+    .replace(/\s+/g, '')
+    .trim()
+  if (/^[A-ZŽŠČ\.]{1,4}$/u.test(clean)) {
+    return false
+  }
+  if (!/[a-zžščćđ]/u.test(clean)) {
+    return false
+  }
   return clean.length >= 2
 }
 
