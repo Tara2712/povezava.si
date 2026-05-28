@@ -4181,27 +4181,3 @@
 @media (max-width: 400px) {
   .osebe-grid { grid-template-columns: 1fr; }
 }
-
-/* PDF button */
-.prof-btn-pdf {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: 10px;
-  background: #f1f5f9;
-  border: 1px solid #dbe2ea;
-  font-size: 13px;
-  font-weight: 500;
-  color: #6b7280;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.prof-btn-pdf:hover {
-  border-color: violet;
-  color: violet;
-  transform: translateY(-1px);
-}
