@@ -47,3 +47,157 @@ html, body {
 .leaflet-map-pane {
   background: transparent;
 }
+
+/* LEVI PANEL */
+
+.left-panel {
+  width: 320px;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* NASLOV */
+
+.left-panel h2 {
+  margin: 0 0 32px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+
+/* FILTER BLOK */
+
+.filter-group {
+  margin-bottom: 22px;
+}
+
+/* LABEL */
+
+.filter-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+/* INPUT + SELECT */
+
+.filter-group input,
+.filter-group select {
+  width: 100%;
+  height: 48px;
+  padding: 0 18px;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 15px;
+  color: #0f172a;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+/* PLACEHOLDER */
+
+.filter-group input::placeholder {
+  color: #94a3b8;
+}
+
+/* HOVER */
+
+.filter-group input:hover,
+.filter-group select:hover {
+  border-color: #cbd5e1;
+}
+
+/* FOCUS */
+
+.filter-group input:focus,
+.filter-group select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
+
+/* BUTTON */
+
+.reset-button {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #dbe2ea;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.reset-button:active {
+  transform: scale(0.98);
+}
+
+/* REZULTATI */
+
+.results-count {
+  margin-top: 22px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.results-count strong {
+  color: #0f172a;
+}
+
+/* OPTION ELEMENTI */
+
+.filter-group select,
+.filter-group option {
+  color: #0f172a;
+}
+
+/* SELECT CUSTOM */
+
+.filter-group select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  padding-right: 48px;
+
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%230f172a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
+
+  color: #0f172a;
+}
+
+/* OPTION TEXT */
+
+.filter-group select option {
+  color: #0f172a;
+  background: #fff;
+}
+
+/* PLACEHOLDER SELECT */
+
+.select-placeholder {
+  color: #64748b;
+}
+.filter-group select:has(.select-placeholder:checked) {
+  color: #64748b;
+}
