@@ -38,6 +38,15 @@ function jeRelevanten(naslov, opis) {
   return KLJUCNE_BESEDE.some(k => besedilo.includes(k))
 }
 
+function jeVeljavnoIme(ime) {
+  if (!ime) return false
+
+  const clean = ime.trim()
+  if (/^[A-ZŽŠČ]{1,3}\.?$/u.test(clean)) return false
+
+  return clean.length >= 2
+}
+
 async function potegniRSS(url) {
   const res = await axios.get(url, {
     timeout: 10000,
@@ -92,8 +101,10 @@ Vrni SAMO veljaven JSON (brez dodatnega besedila):
 }
 
 Pravila:
-- Uporabi IZKLJUČNO polna imena oseb, nikoli začetnic
-- Če je v članku zapisano samo "R. Golob", osebe NE vrni
+- Uporabi IZKLJUČNO polna imena oseb
+- Nikoli ne uporabljaj začetnic
+- Če je zapisano samo "R. Golob", osebe NE vrni
+- Če je zapisano "OO", "IS", "AŽ" ali podobne kratice, osebe NE vrni
 - Ne ugibaj imen iz začetnic
 - Samo jasno omenjene vloge (direktor, predsednik, lastnik, član uprave...)
 - Vloga max 3 besede
@@ -131,7 +142,13 @@ async function shraniVBazo(podatki, vir) {
     ).catch(() => {})
   }
 
-  for (const oseba of podatki.osebe || []) {
+    for (const oseba of podatki.osebe || []) {
+
+    if (!jeVeljavnoIme(oseba.ime) || !jeVeljavnoIme(oseba.priimek)) {
+      console.log(`    [!] Preskočim neveljavno osebo: ${oseba.ime} ${oseba.priimek}`)
+      continue
+    }
+
     const obs = await pool.query(
       `SELECT id FROM osebe WHERE ime = $1 AND priimek = $2`,
       [oseba.ime, oseba.priimek]
@@ -145,6 +162,10 @@ async function shraniVBazo(podatki, vir) {
   }
 
   for (const p of podatki.povezave || []) {
+    if (!jeVeljavnoIme(p.oseba_ime) || !jeVeljavnoIme(p.oseba_priimek)) {
+      console.log(`    [!] Preskočim neveljavno povezavo: ${p.oseba_ime} ${p.oseba_priimek}`)
+      continue
+    }
     const o = await pool.query(`SELECT id FROM osebe WHERE ime=$1 AND priimek=$2`, [p.oseba_ime, p.oseba_priimek])
     const d = await pool.query(`SELECT id FROM podjetja WHERE popolno_ime=$1`, [p.podjetje])
     if (o.rows.length > 0 && d.rows.length > 0) {
