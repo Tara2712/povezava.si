@@ -36,13 +36,10 @@
     [x] iskanje po zemljevidu
     [x] popravi backend (preveč obremnjen server)
 [x] osnovna logika grafa
-    [] popravi izgled - FE
-    [] graf clustri
     [] izvoz podatkov v pdf
 [x] Izvoz podatkov profila osebe v pdf
 [x] Izvoz podatkov profila podjetja v pdf
 [x] fix homepage iskanje
-[] Scrapanje člankov
 [] Testiranje frontend
 [] Dokumentiranje Jira
 [] Responsive ui za mobilne naprave
