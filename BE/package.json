@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "test": "node --check server.js",
     "test:setup": "node scripts/setupTestDB.js",
     "test:scrap": "node scripts/scrapAjpes.js",
     "test:extract": "node scripts/extractConnections.js",
