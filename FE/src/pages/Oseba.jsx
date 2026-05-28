@@ -6,7 +6,6 @@ import ShareBtn from '../components/ShareBtn'
 import { useSavedPersons, useRecentlyViewed, useComparison } from '../hooks/usePersonStorage'
 import { useWatchlist } from '../hooks/useWatchlist'
 import { API } from '../api'
-import { generateOsebaPdf } from '../utils/generateOsebaPdf'
 
 function fmtDate(d) {
   if (!d) return null
@@ -77,17 +76,6 @@ export default function Oseba() {
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
                 {isFollowing(data.id) ? 'Slediš' : 'Sledi'}
-              </button>
-              <button 
-                className="prof-btn prof-btn-pdf"
-                onClick={() => generateOsebaPdf(data, clanki)}
-              > <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <path d="M14 2v6h6" />
-                  <path d="M9 15h6" />
-                  <path d="M9 11h6" />
-                </svg>
-                Prenesi PDF
               </button>
               <button
                 className={`prof-btn prof-btn-save${isSaved(data.id) ? ' saved' : ''}`}

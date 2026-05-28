@@ -152,10 +152,6 @@ export default function Asistent() {
     inputRef.current?.focus()
   }
 
-  setLoading(false)
-  inputRef.current?.focus()
-}
-
   function onKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
   }

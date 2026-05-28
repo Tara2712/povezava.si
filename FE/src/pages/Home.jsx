@@ -85,7 +85,7 @@ export default function Home() {
   function handleSearch() {
     if (query.trim()) {
       trackSearch(query)
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`)
+      navigate(`/osebe?q=${encodeURIComponent(query.trim())}`)
     }
   }
 

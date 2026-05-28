@@ -1,6 +1,6 @@
 require('dotenv').config()
+// v2.4 — Gemini + Google Search grounding, Groq fallback
 const express = require('express')
-const cors = require('cors')
 const { Pool } = require('pg')
 const axios = require('axios')
 const OpenAI = require('openai')
@@ -14,7 +14,7 @@ const statsRoutes = require('./routes/stats')
 const lobistiRoutes = require('./routes/lobisti')
 const ovadeniRoutes = require('./routes/ovadeni')
 const bfsRoutes = require('./test6Degrees/bfs_nova')
-const { setupRoutes: setupGeminiAi2Routes } = require('./routes/gemini_ai2')
+const geminiRoutes = require('./routes/gemini_ai')
 const kordinateRoutes = require('./routes/kordinate')
 
 
@@ -27,38 +27,13 @@ const pool = new Pool({
 })
 
 app.use(express.json())
-const allowedOrigins = (process.env.CORS_ORIGINS || '')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean)
 
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin) return callback(null, true)
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true)
-    }
-
-    return callback(null, false)
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}))
-
-app.options('*', cors())
-
-/* app.use((req, res, next) => {
+app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204)
-  }
-
+  res.header('Access-Control-Allow-Headers', 'Content-Type')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
   next()
-}) */
+})
 
 // Health check
 app.get('/', (req, res) => {
@@ -83,7 +58,7 @@ app.use('/lobisti', lobistiRoutes)
 app.use('/api/ovadeni', ovadeniRoutes)
 app.use('/ovadeni', ovadeniRoutes)
 app.use('/kordinate', kordinateRoutes)
-setupGeminiAi2Routes(app)
+geminiRoutes.setupRoutes(app)
 
 // GET /osebe — seznam oseb (limit, tip opcijski)
 app.get('/osebe', async (req, res) => {
@@ -1051,7 +1026,7 @@ Pravila:
     emit({ done: true })
     res.end()
   }
-}) */
+})
 
 async function searchWeb(query) {
   if (!process.env.TAVILY_API_KEY) return null
