@@ -92,6 +92,9 @@ Vrni SAMO veljaven JSON (brez dodatnega besedila):
 }
 
 Pravila:
+- Uporabi IZKLJUČNO polna imena oseb, nikoli začetnic
+- Če je v članku zapisano samo "R. Golob", osebe NE vrni
+- Ne ugibaj imen iz začetnic
 - Samo jasno omenjene vloge (direktor, predsednik, lastnik, član uprave...)
 - Vloga max 3 besede
 - Organizacije vključuj samo če imajo povezavo z osebo
