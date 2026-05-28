@@ -609,32 +609,35 @@ async function formatZaFrontend(startKey, ciljKey, pot) {
 async function isciEntitete(q) {
   const search = `%${q}%`
 
-  const osebe = await pool.query(`
-    SELECT 
-      id::text AS id,
-      'oseba' AS tip,
-      CONCAT(COALESCE(ime, ''), ' ', COALESCE(priimek, '')) AS label
-    FROM osebe
-    WHERE 
-      ime ILIKE $1
-      OR priimek ILIKE $1
-      OR CONCAT(COALESCE(ime, ''), ' ', COALESCE(priimek, '')) ILIKE $1
-    LIMIT 10
+  const result = await pool.query(`
+    SELECT *
+    FROM (
+      SELECT 
+        id::text AS id,
+        'oseba' AS tip,
+        TRIM(CONCAT(COALESCE(ime, ''), ' ', COALESCE(priimek, ''))) AS label
+      FROM osebe
+      WHERE 
+        ime ILIKE $1
+        OR priimek ILIKE $1
+        OR CONCAT(COALESCE(ime, ''), ' ', COALESCE(priimek, '')) ILIKE $1
+
+      UNION ALL
+
+      SELECT
+        maticna::text AS id,
+        'podjetje' AS tip,
+        COALESCE(popolno_ime, maticna) AS label
+      FROM podjetja
+      WHERE 
+        popolno_ime ILIKE $1
+        OR maticna ILIKE $1
+    ) rezultati
+    WHERE label IS NOT NULL AND label <> ''
+    LIMIT 12
   `, [search])
 
-  const podjetja = await pool.query(`
-    SELECT
-      maticna::text AS id,
-      'podjetje' AS tip,
-      COALESCE(popolno_ime, maticna) AS label
-    FROM podjetja
-    WHERE 
-      popolno_ime ILIKE $1
-      OR maticna ILIKE $1
-    LIMIT 10
-  `, [search])
-
-  return [...osebe.rows, ...podjetja.rows]
+  return result.rows
 }
 
 async function nalogajGraf() {
@@ -880,5 +883,8 @@ function setupRoutes(app) {
 
 module.exports = {
   nalogajGraf,
-  setupRoutes
+  setupRoutes,
+  pridobiSosede,
+  poisciPotBFS,
+  formatZaFrontend
 }

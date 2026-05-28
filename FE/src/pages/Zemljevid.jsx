@@ -80,6 +80,10 @@ export default function Mapa() {
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCompany, setSelectedCompany] = useState(null)
+  const [searchName, setSearchName] = useState("")
+  const [searchMaticna, setSearchMaticna] = useState("")
+  const [selectedPravnaOblika, setSelectedPravnaOblika] = useState("")
+  const [selectedKraj, setSelectedKraj] = useState("")
 
   useEffect(() => {
     async function loadCompanies() {
@@ -116,6 +120,49 @@ export default function Mapa() {
     loadCompanies()
   }, [])
 
+  const pravneOblike = [
+  ...new Set(
+    companies
+      .map(c => c.pravna_oblika)
+      .filter(Boolean)
+  )
+]
+
+const kraji = [
+  ...new Set(
+    companies
+      .map(c => c.posta)
+      .filter(Boolean)
+  )
+]
+
+  const filteredCompanies = companies.filter(company => {
+  const matchName =
+    company.popolno_ime
+      ?.toLowerCase()
+      .includes(searchName.toLowerCase())
+
+  const matchMaticna =
+    company.maticna
+      ?.toString()
+      .includes(searchMaticna)
+
+  const matchPravnaOblika =
+    selectedPravnaOblika === "" ||
+    company.pravna_oblika === selectedPravnaOblika
+
+  const matchKraj =
+    selectedKraj === "" ||
+    company.posta === selectedKraj
+
+  return (
+    matchName &&
+    matchMaticna &&
+    matchPravnaOblika &&
+    matchKraj
+  )
+})
+
   const createClusterCustomIcon = cluster => {
     const count = cluster.getChildCount()
 
@@ -141,6 +188,91 @@ export default function Mapa() {
         }}
       >
 
+        {/* LEVI PANEL */}
+<div className="left-panel">
+  <h2>Filtri</h2>
+
+  {/* IME */}
+  <div className="filter-group">
+    <label>Ime podjetja</label>
+
+    <input
+      type="text"
+      value={searchName}
+      onChange={(e) => setSearchName(e.target.value)}
+      placeholder="Vnesi ime..."
+    />
+  </div>
+
+  {/* MATIČNA */}
+  <div className="filter-group">
+    <label>Matična številka</label>
+
+    <input
+      type="text"
+      value={searchMaticna}
+      onChange={(e) => setSearchMaticna(e.target.value)}
+      placeholder="Vnesi matično..."
+    />
+  </div>
+
+  {/* PRAVNA OBLIKA */}
+  <div className="filter-group">
+    <label>Pravna oblika</label>
+
+    <select
+      value={selectedPravnaOblika}
+      onChange={(e) => setSelectedPravnaOblika(e.target.value)}
+    >
+     <option className="select-placeholder" value="">
+        Vse
+        </option>
+
+      {pravneOblike.map((oblika, index) => (
+        <option key={index} value={oblika}>
+          {oblika}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  {/* KRAJ */}
+  <div className="filter-group">
+    <label>Kraj</label>
+
+    <select
+      value={selectedKraj}
+      onChange={(e) => setSelectedKraj(e.target.value)}
+    >
+      <option className="select-placeholder" value="">
+        Vsi kraji
+        </option>
+
+      {kraji.map((kraj, index) => (
+        <option key={index} value={kraj}>
+          {kraj}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <button
+    className="reset-button"
+    onClick={() => {
+      setSearchName("")
+      setSearchMaticna("")
+      setSelectedPravnaOblika("")
+      setSelectedKraj("")
+    }}
+  >
+    Ponastavi filtre
+  </button>
+
+  <div className="results-count">
+    Najdenih podjetij: <strong>{filteredCompanies.length}</strong>
+  </div>
+</div>
+
         {/* MAPA */}
         <div style={{ flex: 1 }}>
           <MapContainer
@@ -165,7 +297,7 @@ export default function Mapa() {
               zoomToBoundsOnClick
               iconCreateFunction={createClusterCustomIcon}
             >
-              {companies.map(company => (
+              {filteredCompanies.map(company => (
                 <Marker
                   key={company.id}
                   position={[company.lat, company.lng]}
