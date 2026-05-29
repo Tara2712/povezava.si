@@ -4195,3 +4195,80 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+.hd-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* posamezen stat */
+.hd-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.hd-stat-num {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.hd-stat-lbl {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* separator */
+.hd-stat-sep {
+  width: 1px;
+  height: 28px;
+  background: rgba(0,0,0,0.15);
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .hd-stats-bar {
+    flex-direction: column;
+    align-items: center; /* KLJUČNO: center vsega */
+    gap: 10px;
+    text-align: center;
+  }
+
+  .hd-stat {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center; /* centriranje vsebine */
+    gap: 6px;
+  }
+
+  .hd-stat-sep {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .hd-card3 {
+    margin-bottom: 30px; /* poveča razmak pod kvadratkom */
+  }
+}
+
+.mp-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .mp-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mp-edit-btn,
+  .mp-logout-btn {
+    width: 100%;
+  }
+}

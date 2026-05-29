@@ -27,7 +27,6 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon
 
 const API_URL = import.meta.env.VITE_API_URL + '/kordinate'
-//const API_URL = "http://localhost:3000/kordinate"
 
 const SLOVENIA_CENTER = [46.1512, 14.9955]
 
@@ -48,20 +47,13 @@ const FIELD_LABELS = {
   registrski_organ: "Registrski organ"
 }
 
-const formatLabel = (key) => {
-  return FIELD_LABELS[key] || key
-}
+const formatLabel = (key) => FIELD_LABELS[key] || key
 
 const formatValue = (key, value, company) => {
   if (value === null || value === undefined || value === "") return "-"
 
-  if (key === "ulica") {
-    return `${company.ulica || ""}`.trim()
-  }
-
-  if (key === "posta") {
-    return `${company.posta || ""}`.trim()
-  }
+  if (key === "ulica") return `${company.ulica || ""}`.trim()
+  if (key === "posta") return `${company.posta || ""}`.trim()
 
   return String(value)
 }
@@ -70,6 +62,7 @@ function MapBoundsController() {
   const map = useMap()
 
   useEffect(() => {
+    map.fitBounds(SLOVENIA_BOUNDS, { padding: [20, 20] })
     map.setMaxBounds(SLOVENIA_BOUNDS)
   }, [map])
 
@@ -80,10 +73,14 @@ export default function Mapa() {
   const [companies, setCompanies] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCompany, setSelectedCompany] = useState(null)
+
   const [searchName, setSearchName] = useState("")
   const [searchMaticna, setSearchMaticna] = useState("")
   const [selectedPravnaOblika, setSelectedPravnaOblika] = useState("")
   const [selectedKraj, setSelectedKraj] = useState("")
+
+  // ✅ NOVO: mobile toggle filtra
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   useEffect(() => {
     async function loadCompanies() {
@@ -97,8 +94,6 @@ export default function Mapa() {
           .filter(c =>
             c.lat !== null &&
             c.lng !== null &&
-            c.lat !== undefined &&
-            c.lng !== undefined &&
             !isNaN(Number(c.lat)) &&
             !isNaN(Number(c.lng))
           )
@@ -110,7 +105,6 @@ export default function Mapa() {
 
         setCompanies(validCompanies)
         setLoading(false)
-
       } catch (err) {
         console.error(err)
         setLoading(false)
@@ -120,279 +114,178 @@ export default function Mapa() {
     loadCompanies()
   }, [])
 
-  const pravneOblike = [
-  ...new Set(
-    companies
-      .map(c => c.pravna_oblika)
-      .filter(Boolean)
-  )
-]
-
-const kraji = [
-  ...new Set(
-    companies
-      .map(c => c.posta)
-      .filter(Boolean)
-  )
-]
+  const pravneOblike = [...new Set(companies.map(c => c.pravna_oblika).filter(Boolean))]
+  const kraji = [...new Set(companies.map(c => c.posta).filter(Boolean))]
 
   const filteredCompanies = companies.filter(company => {
-  const matchName =
-    company.popolno_ime
-      ?.toLowerCase()
-      .includes(searchName.toLowerCase())
-
-  const matchMaticna =
-    company.maticna
-      ?.toString()
-      .includes(searchMaticna)
-
-  const matchPravnaOblika =
-    selectedPravnaOblika === "" ||
-    company.pravna_oblika === selectedPravnaOblika
-
-  const matchKraj =
-    selectedKraj === "" ||
-    company.posta === selectedKraj
-
-  return (
-    matchName &&
-    matchMaticna &&
-    matchPravnaOblika &&
-    matchKraj
-  )
-})
+    return (
+      company.popolno_ime?.toLowerCase().includes(searchName.toLowerCase()) &&
+      company.maticna?.toString().includes(searchMaticna) &&
+      (selectedPravnaOblika === "" || company.pravna_oblika === selectedPravnaOblika) &&
+      (selectedKraj === "" || company.posta === selectedKraj)
+    )
+  })
 
   const createClusterCustomIcon = cluster => {
     const count = cluster.getChildCount()
 
     return L.divIcon({
-      html: `
-        <div class="custom-cluster">
-          <span>${count}</span>
-        </div>
-      `,
+      html: `<div class="custom-cluster"><span>${count}</span></div>`,
       className: 'cluster-wrapper',
       iconSize: L.point(50, 50, true)
     })
   }
 
-  return (
-    <Layout>
-      <div
-        style={{
-          display: 'flex',
-          width: '100%',
-          height: 'calc(100vh - 80px)',
-          overflow: 'hidden'
-        }}
-      >
+return (
+  <Layout>
+    <div className="map-wrapper">
 
-        {/* LEVI PANEL */}
-<div className="left-panel">
-  <h2>Filtri</h2>
+      {/* LEVI PANEL */}
+      <div className={`left-panel ${filtersOpen ? "open" : ""}`}>
+        <h2
+          className="filters-title"
+          onClick={() => setFiltersOpen(!filtersOpen)}
+        >
+          Filtri
+        </h2>
 
-  {/* IME */}
-  <div className="filter-group">
-    <label>Ime podjetja</label>
+        <div className="filters-content">
 
-    <input
-      type="text"
-      value={searchName}
-      onChange={(e) => setSearchName(e.target.value)}
-      placeholder="Vnesi ime..."
-    />
-  </div>
+          {/* Ime */}
+          <div className="filter-group">
+            <label>Ime podjetja</label>
+            <input value={searchName} onChange={(e) => setSearchName(e.target.value)} />
+          </div>
 
-  {/* MATIČNA */}
-  <div className="filter-group">
-    <label>Matična številka</label>
+          {/* Matična */}
+          <div className="filter-group">
+            <label>Matična številka</label>
+            <input value={searchMaticna} onChange={(e) => setSearchMaticna(e.target.value)} />
+          </div>
 
-    <input
-      type="text"
-      value={searchMaticna}
-      onChange={(e) => setSearchMaticna(e.target.value)}
-      placeholder="Vnesi matično..."
-    />
-  </div>
-
-  {/* PRAVNA OBLIKA */}
-  <div className="filter-group">
-    <label>Pravna oblika</label>
-
-    <select
-      value={selectedPravnaOblika}
-      onChange={(e) => setSelectedPravnaOblika(e.target.value)}
-    >
-     <option className="select-placeholder" value="">
-        Vse
-        </option>
-
-      {pravneOblike.map((oblika, index) => (
-        <option key={index} value={oblika}>
-          {oblika}
-        </option>
-      ))}
-    </select>
-  </div>
-
-  {/* KRAJ */}
-  <div className="filter-group">
-    <label>Kraj</label>
-
-    <select
-      value={selectedKraj}
-      onChange={(e) => setSelectedKraj(e.target.value)}
-    >
-      <option className="select-placeholder" value="">
-        Vsi kraji
-        </option>
-
-      {kraji.map((kraj, index) => (
-        <option key={index} value={kraj}>
-          {kraj}
-        </option>
-      ))}
-    </select>
-  </div>
-
-  <button
-    className="reset-button"
-    onClick={() => {
-      setSearchName("")
-      setSearchMaticna("")
-      setSelectedPravnaOblika("")
-      setSelectedKraj("")
-    }}
-  >
-    Ponastavi filtre
-  </button>
-
-  <div className="results-count">
-    Najdenih podjetij: <strong>{filteredCompanies.length}</strong>
-  </div>
-</div>
-
-        {/* MAPA */}
-        <div style={{ flex: 1 }}>
-          <MapContainer
-            center={SLOVENIA_CENTER}
-            zoom={8}
-            minZoom={8}
-            maxZoom={18}
-            maxBounds={SLOVENIA_BOUNDS}
-            style={{ width: '100%', height: '100%' }}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&copy; OpenStreetMap"
-            />
-
-            <MapBoundsController />
-
-            <MarkerClusterGroup
-              chunkedLoading
-              spiderfyOnMaxZoom
-              showCoverageOnHover={false}
-              zoomToBoundsOnClick
-              iconCreateFunction={createClusterCustomIcon}
-            >
-              {filteredCompanies.map(company => (
-                <Marker
-                  key={company.id}
-                  position={[company.lat, company.lng]}
-                  eventHandlers={{
-                    click: () => setSelectedCompany(company)
-                  }}
-                >
-                  <Popup>
-                    <strong>{company.popolno_ime}</strong>
-                  </Popup>
-                </Marker>
+          {/* Pravna oblika */}
+          <div className="filter-group">
+            <label>Pravna oblika</label>
+            <select value={selectedPravnaOblika} onChange={(e) => setSelectedPravnaOblika(e.target.value)}>
+              <option value="">Vse</option>
+              {pravneOblike.map((o, i) => (
+                <option key={i} value={o}>{o}</option>
               ))}
-            </MarkerClusterGroup>
-          </MapContainer>
-        </div>
+            </select>
+          </div>
 
-        {/* DESNI PANEL */}
-        {selectedCompany && (
-          <div
-            style={{
-              width: '420px',
-              background: '#fff',
-              borderLeft: '1px solid #e2e8f0',
-              overflowY: 'auto',
-              padding: '24px',
-              boxShadow: '-8px 0 25px rgba(0,0,0,0.1)'
+          {/* Kraj */}
+          <div className="filter-group">
+            <label>Kraj</label>
+            <select value={selectedKraj} onChange={(e) => setSelectedKraj(e.target.value)}>
+              <option value="">Vsi kraji</option>
+              {kraji.map((k, i) => (
+                <option key={i} value={k}>{k}</option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            className="reset-button"
+            onClick={() => {
+              setSearchName("")
+              setSearchMaticna("")
+              setSelectedPravnaOblika("")
+              setSelectedKraj("")
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <h2 style={{ margin: 0, fontSize: '22px' }}>
-                {selectedCompany.popolno_ime}
-              </h2>
+            Ponastavi filtre
+          </button>
 
-              <button
-                onClick={() => setSelectedCompany(null)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: '22px',
-                  cursor: 'pointer'
+          <div className="results-count">
+            Najdenih podjetij: <strong>{filteredCompanies.length}</strong>
+          </div>
+
+        </div>
+      </div>
+
+      {/* MAPA */}
+      <div className="map-container">
+        <MapContainer
+          center={SLOVENIA_CENTER}
+          zoom={8}
+          minZoom={8}
+          maxZoom={18}
+          maxBounds={SLOVENIA_BOUNDS}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <MapBoundsController />
+
+          <MarkerClusterGroup
+            chunkedLoading
+            iconCreateFunction={createClusterCustomIcon}
+          >
+            {filteredCompanies.map(c => (
+              <Marker
+                key={c.id}
+                position={[c.lat, c.lng]}
+                eventHandlers={{
+                  click: () => setSelectedCompany(c)
                 }}
               >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ marginTop: '20px' }}>
-              {Object.entries(selectedCompany).map(([key, value]) => (
-                <div
-                  key={key}
-                  style={{
-                    marginBottom: '14px',
-                    paddingBottom: '10px',
-                    borderBottom: '1px solid #f1f5f9'
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      color: '#64748b',
-                      marginBottom: '4px',
-                      textTransform: 'uppercase'
-                    }}
-                  >
-                    {formatLabel(key)}
-                  </div>
-
-                  <div style={{ fontSize: '14px' }}>
-                    {formatValue(key, value, selectedCompany)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* LOADING */}
-        {loading && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 90,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: '#0f172a',
-              color: '#fff',
-              padding: '12px 24px',
-              borderRadius: '999px',
-              zIndex: 9999
-            }}
-          >
-            Nalaganje podjetij...
-          </div>
-        )}
+                <Popup>
+                  <strong>{c.popolno_ime}</strong>
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
+        </MapContainer>
       </div>
-    </Layout>
-  )
+
+      {/* DESNI PANEL (desktop ONLY, ORIGINAL STYLE) */}
+      {selectedCompany && (
+        <div className="right-panel-desktop">
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <h2 style={{ margin: 0, fontSize: '22px' }}>
+              {selectedCompany.popolno_ime}
+            </h2>
+
+            <button onClick={() => setSelectedCompany(null)}>✕</button>
+          </div>
+
+          <div style={{ marginTop: '20px' }}>
+            {Object.entries(selectedCompany).map(([key, value]) => (
+              <div key={key} style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 12, color: '#64748b' }}>
+                  {formatLabel(key)}
+                </div>
+                <div style={{ fontSize: 14 }}>
+                  {formatValue(key, value, selectedCompany)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE BOTTOM PANEL */}
+      {selectedCompany && (
+        <div className="mobile-bottom-panel">
+          <div className="mobile-bottom-header">
+            <h2>{selectedCompany.popolno_ime}</h2>
+            <button onClick={() => setSelectedCompany(null)}>✕</button>
+          </div>
+
+          <div className="mobile-bottom-content">
+            {Object.entries(selectedCompany).map(([key, value]) => (
+              <div key={key} className="mobile-row">
+                <div className="label">{formatLabel(key)}</div>
+                <div className="value">{formatValue(key, value, selectedCompany)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loading && <div className="loading">Nalaganje podjetij...</div>}
+
+    </div>
+  </Layout>
+)
 }
