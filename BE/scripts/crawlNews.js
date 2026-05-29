@@ -40,12 +40,11 @@ function jeRelevanten(naslov, opis) {
 
 function jeVeljavnoIme(ime) {
   if (!ime) return false;
-  // Odstrani vse, kar ni črka (presledke, pike)
-  const clean = String(ime).replace(/[^a-zžščćđ]/gi, '').toUpperCase();
-  const blacklist = ['OO', 'IS', 'AZ', 'NN', 'VV', 'OI', 'SI']; 
+  const clean = String(ime).trim().toUpperCase();
+  const blacklist = ['OO', 'IS', 'AZ', 'NN', 'VV']; 
   if (blacklist.includes(clean)) return false;
   if (clean.length < 3) return false;
-  
+  if (clean.includes('.')) return false;
   return true;
 }
 
@@ -118,44 +117,15 @@ Pravila:
 
 Besedilo: ${besedilo}`
 
-  try {
-    const response = await openai.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.0 
-    });
+  const response = await openai.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.1
+  })
 
-    let clean = response.choices[0].message.content.trim()
-      .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
-    if (!clean.startsWith('{')) throw new Error("Model ni vrnil JSON-a");
-
-    const pod = JSON.parse(clean);
-
-    const varnoPod = {
-      osebe: Array.isArray(pod.osebe) ? pod.osebe : [],
-      podjetja: Array.isArray(pod.podjetja) ? pod.podjetja : [],
-      povezave: Array.isArray(pod.povezave) ? pod.povezave : []
-    };
-
-    varnoPod.osebe = varnoPod.osebe.filter(o => {
-      const ime = (o.ime || '').replace(/\s/g, '').toUpperCase();
-      const priimek = (o.priimek || '').replace(/\s/g, '').toUpperCase();
-      
-      const neveljavne = ['OO', 'IS', 'NN', 'AZ', 'VV', 'OI', 'SI', 'MB'];
-      
-      return ime.length >= 3 && 
-             priimek.length >= 3 && 
-             !neveljavne.includes(ime) && 
-             !neveljavne.includes(priimek);
-    });
-
-    return varnoPod;
-
-  } catch (err) {
-    console.error("Napaka pri parsiranju LLM odgovora:", err.message);
-    return { osebe: [], podjetja: [], povezave: [] };
-  }
+  const clean = response.choices[0].message.content.trim()
+    .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+  return JSON.parse(clean)
 }
 
 async function jeZeObdelan(url) {
@@ -242,7 +212,7 @@ async function glavnaFunkcija() {
       continue
     }
 
-    for (const clanek of clanki.slice(0, 5)) { // max 5 na vir
+    for (const clanek of clanki.slice(0, 5)) {
       if (await jeZeObdelan(clanek.link)) {
         console.log(`  [→] Že obdelan: ${clanek.naslov.substring(0, 50)}`)
         continue
@@ -251,7 +221,6 @@ async function glavnaFunkcija() {
       console.log(`  Obdelujem: ${clanek.naslov.substring(0, 60)}...`)
 
       try {
-        // Najprej poskusi s celotnim člankom, drugače uporabi naslov+opis iz RSS
         let besedilo = ''
         try {
           besedilo = await potegniBesedilo(clanek.link)
@@ -270,7 +239,7 @@ async function glavnaFunkcija() {
         podatki.osebe = podatki.osebe.filter(o => 
             jeVeljavnoIme(o.ime) && 
             jeVeljavnoIme(o.priimek) &&
-            o.ime.toLowerCase() !== o.priimek.toLowerCase()
+            o.ime.toLowerCase() !== o.priimek.toLowerCase() 
         );
         const shranjenih = await shraniVBazo(podatki, clanek.link)
 
@@ -283,7 +252,6 @@ async function glavnaFunkcija() {
         skupajClankov++
         skupajPovezav += shranjenih
 
-        // Počakaj 1s da ne preobremeniš API-ja
         await new Promise(r => setTimeout(r, 1000))
       } catch (err) {
         console.log(`    [!] Napaka: ${err.message}`)
