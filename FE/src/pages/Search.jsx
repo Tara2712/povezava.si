@@ -124,9 +124,13 @@ export default function SearchResultsPage() {
                     const name = `${o.ime} ${o.priimek}`
 
                     return (
-                        <div key={o.id} className="osebe-card-wrap">
+                        <div key={o.id} className="osebe-card-wrap" >
                         <button
                             className="osebe-card"
+                            style={{
+                            borderRadius: "22px 22px 0 0",
+                            overflow: "hidden"
+                          }}
                             onClick={() => navigate(`/oseba/${o.id}`)}
                         >
                             <Avatar
