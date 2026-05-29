@@ -4160,3 +4160,38 @@
   color: violet;
   transform: translateY(-1px);
 }
+
+.pdf-btn-wrapper {
+  position: relative;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.pdf-tooltip {
+  position: absolute;
+  right: 0;
+  top: 110%;
+  width: 260px;
+
+  background: #0f172a;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+
+  padding: 10px 12px;
+  border-radius: 10px;
+
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  z-index: 50;
+}
+
+.pdf-btn-wrapper:hover .pdf-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
