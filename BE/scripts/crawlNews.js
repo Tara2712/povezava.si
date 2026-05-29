@@ -38,6 +38,17 @@ function jeRelevanten(naslov, opis) {
   return KLJUCNE_BESEDE.some(k => besedilo.includes(k))
 }
 
+function jeVeljavnoIme(ime) {
+  if (!ime) return false;
+  // Odstrani vse, kar ni črka (presledke, pike)
+  const clean = String(ime).replace(/[^a-zžščćđ]/gi, '').toUpperCase();
+  const blacklist = ['OO', 'IS', 'AZ', 'NN', 'VV', 'OI', 'SI']; 
+  if (blacklist.includes(clean)) return false;
+  if (clean.length < 3) return false;
+  
+  return true;
+}
+
 async function potegniRSS(url) {
   const res = await axios.get(url, {
     timeout: 10000,
@@ -82,7 +93,11 @@ async function potegniBesedilo(url) {
 }
 
 async function ekstrahirajPovezave(besedilo) {
-  const prompt = `Iz naslednjega slovenskega besedila izvleci vse osebe in organizacije ter njihove vloge.
+  const prompt = `Iz naslednjega slovenskega besedila izvleci vse osebe (polno ime in priimek) in organizacije ter njihove vloge.
+  STROGO PREPOVEDANO:
+- NE vračaj kratic, začetnic (npr. "J. Novak" ali "J. N."), ali generičnih kratic kot "OO", "IS", "NN".
+- Če oseba ni jasno imenovana s polnim imenom in priimkom, je ne vključi.
+- Če nisi 100% prepričan, da je oseba realna in polno imenovana, raje ne vrni ničesar.
 
 Vrni SAMO veljaven JSON (brez dodatnega besedila):
 {
@@ -92,6 +107,11 @@ Vrni SAMO veljaven JSON (brez dodatnega besedila):
 }
 
 Pravila:
+- Uporabi IZKLJUČNO polna imena oseb
+- Nikoli ne uporabljaj začetnic
+- Če je zapisano samo "R. Golob", osebe NE vrni
+- Če je zapisano "OO", "IS", "AŽ" ali podobne kratice, osebe NE vrni
+- Ne ugibaj imen iz začetnic
 - Samo jasno omenjene vloge (direktor, predsednik, lastnik, član uprave...)
 - Vloga max 3 besede
 - Organizacije vključuj samo če imajo povezavo z osebo
@@ -106,7 +126,15 @@ Besedilo: ${besedilo}`
 
   const clean = response.choices[0].message.content.trim()
     .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-  return JSON.parse(clean)
+
+  const pod = JSON.parse(clean);
+  pod.osebe = pod.osebe.filter(o => 
+    o.ime.replace(/\s/g, '').length > 2 && 
+    o.priimek.replace(/\s/g, '').length > 2 &&
+    !o.ime.toUpperCase().includes('OO') &&
+    !o.priimek.toUpperCase().includes('IS')
+  );
+  return pod;
 }
 
 async function jeZeObdelan(url) {
@@ -128,7 +156,18 @@ async function shraniVBazo(podatki, vir) {
     ).catch(() => {})
   }
 
-  for (const oseba of podatki.osebe || []) {
+    for (const oseba of podatki.osebe || []) {
+
+    if (
+      !jeVeljavnoIme(oseba.ime) ||
+      !jeVeljavnoIme(oseba.priimek) ||
+      oseba.ime.length < 3 ||
+      oseba.priimek.length < 3
+    ) {
+      console.log(`    [!] Preskočim neveljavno osebo: ${oseba.ime} ${oseba.priimek}`)
+      continue
+    }
+
     const obs = await pool.query(
       `SELECT id FROM osebe WHERE ime = $1 AND priimek = $2`,
       [oseba.ime, oseba.priimek]
@@ -142,6 +181,15 @@ async function shraniVBazo(podatki, vir) {
   }
 
   for (const p of podatki.povezave || []) {
+    if (
+        !jeVeljavnoIme(p.oseba_ime) ||
+        !jeVeljavnoIme(p.oseba_priimek) ||
+        p.oseba_ime.length < 3 ||
+        p.oseba_priimek.length < 3
+      ) {
+        console.log(`    [!] Preskočim neveljavno povezavo: ${p.oseba_ime} ${p.oseba_priimek}`)
+        continue
+      }
     const o = await pool.query(`SELECT id FROM osebe WHERE ime=$1 AND priimek=$2`, [p.oseba_ime, p.oseba_priimek])
     const d = await pool.query(`SELECT id FROM podjetja WHERE popolno_ime=$1`, [p.podjetje])
     if (o.rows.length > 0 && d.rows.length > 0) {
@@ -197,7 +245,12 @@ async function glavnaFunkcija() {
           continue
         }
 
-        const podatki = await ekstrahirajPovezave(besedilo)
+        const podatki = await ekstrahirajPovezave(besedilo);
+        podatki.osebe = podatki.osebe.filter(o => 
+            jeVeljavnoIme(o.ime) && 
+            jeVeljavnoIme(o.priimek) &&
+            o.ime.toLowerCase() !== o.priimek.toLowerCase()
+        );
         const shranjenih = await shraniVBazo(podatki, clanek.link)
 
         await pool.query(
