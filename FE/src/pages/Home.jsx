@@ -33,6 +33,39 @@ function relTime(d) {
   return new Date(d).toLocaleDateString('sl-SI', { day: 'numeric', month: 'short' })
 }
 
+function jeVeljavnoPrikazanoIme(ime, priimek) {
+  if (!ime || !priimek) return false
+  const i = String(ime).trim()
+  const p = String(priimek).trim()
+  if (i.length < 2 || p.length < 2) return false
+  if (/^[A-ZŽŠČĆĐ]{1,3}$/u.test(i)) return false
+  if (/^[A-ZŽŠČĆĐ]{1,3}$/u.test(p)) return false
+  if (/^([A-ZŽŠČĆĐ]\.){1,3}$/u.test(i)) return false
+  if (/^([A-ZŽŠČĆĐ]\.){1,3}$/u.test(p)) return false
+  if (!/[a-zžščćđ]/u.test(i)) return false
+  if (!/[a-zžščćđ]/u.test(p)) return false
+
+  return true
+}
+
+function imaVeljavneOsebe(clanek) {
+  if (!clanek.osebe || !Array.isArray(clanek.osebe)) {
+    return false
+  }
+  const unique = new Set()
+
+  for (const o of clanek.osebe) {
+    if (!jeVeljavnoPrikazanoIme(o.ime, o.priimek)) {
+      continue
+    }
+    const key = `${o.ime}-${o.priimek}`.toLowerCase()
+    if (!unique.has(key)) {
+      unique.add(key)
+    }
+  }
+  return unique.size > 0
+}
+
 export default function Home() {
   const [query, setQuery]     = useState('')
   const [results, setResults] = useState([])
@@ -53,14 +86,15 @@ export default function Home() {
   useEffect(() => {
     fetch(`${API}/osebe?limit=4&tip=poslovnez`).then(r => r.json()).then(d => setTopPoslovnezi(Array.isArray(d) ? d : (d.osebe ?? []))).catch(() => {})
     fetch(`${API}/akademiki?limit=4`).then(r => r.json()).then(d => setTopAkademiki(Array.isArray(d) ? d : (d.osebe ?? []))).catch(() => {})
-    fetch(`${API}/clanki?limit=3`).then(r => r.json()).then(d => {
-      const arr = Array.isArray(d) ? d : (d.clanki ?? [])
-      setClanki(arr.slice(0, 3))
+    fetch(`${API}/clanki?limit=50`).then(r => r.json()).then(d => {
+    const arr = Array.isArray(d) ? d : (d.clanki ?? [])
+    const filtrirani = arr.filter(c => imaVeljavneOsebe(c))
+    setClanki(filtrirani.slice(0, 3))
     }).catch(() => {})
-    fetch(`${API}/stats`).then(r => r.json()).then(setStats).catch(() => {})
-    fetch(`${API}/lobisti?limit=1`).then(r => r.json()).then(d => setLobCount(d.skupaj ?? 0)).catch(() => {})
-    fetch(`${API}/ovadeni?limit=1`).then(r => r.json()).then(d => setOvCount(d.skupaj ?? 0)).catch(() => {})
-  }, [])
+        fetch(`${API}/stats`).then(r => r.json()).then(setStats).catch(() => {})
+        fetch(`${API}/lobisti?limit=1`).then(r => r.json()).then(d => setLobCount(d.skupaj ?? 0)).catch(() => {})
+        fetch(`${API}/ovadeni?limit=1`).then(r => r.json()).then(d => setOvCount(d.skupaj ?? 0)).catch(() => {})
+      }, [])
 
   useEffect(() => {
     if (!dq.trim()) { setResults([]); return }
