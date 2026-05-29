@@ -7,18 +7,55 @@ function fmtDatum(d) {
   if (!d) return ''
   return new Date(d).toLocaleDateString('sl-SI', { day: 'numeric', month: 'short', year: 'numeric' })
 }
+function jeVeljavnoPrikazanoIme(ime, priimek) {
+  if (!ime || !priimek) return false
+
+  const i = String(ime).trim()
+  const p = String(priimek).trim()
+
+  // prekratko
+  if (i.length < 2 || p.length < 2) return false
+
+  // samo velike črke / kratice
+  if (/^[A-ZŽŠČĆĐ]{1,3}$/u.test(i)) return false
+  if (/^[A-ZŽŠČĆĐ]{1,3}$/u.test(p)) return false
+
+  // začetnice s pikami
+  if (/^([A-ZŽŠČĆĐ]\.){1,3}$/u.test(i)) return false
+  if (/^([A-ZŽŠČĆĐ]\.){1,3}$/u.test(p)) return false
+
+  // mora vsebovati male črke
+  if (!/[a-zžščćđ]/u.test(i)) return false
+  if (!/[a-zžščćđ]/u.test(p)) return false
+
+  return true
+}
 
 function ClanekRow({ clanek }) {
+
+  const osebe = Array.from(
+    new Map(
+      (clanek.osebe || [])
+        .filter(o => jeVeljavnoPrikazanoIme(o.ime, o.priimek))
+        .map(o => [
+          `${o.ime.trim().toLowerCase()}-${o.priimek.trim().toLowerCase()}`,
+          o
+        ])
+    ).values()
+  )
+
   return (
     <a className="mediji-row" href={clanek.url} target="_blank" rel="noopener noreferrer">
       <div className="mediji-row-meta">
         <span className="clanek-vir">{clanek.vir}</span>
         <span className="mediji-row-datum">{fmtDatum(clanek.datum)}</span>
       </div>
+
       <div className="mediji-row-naslov">{clanek.naslov}</div>
-      {clanek.osebe?.length > 0 && (
+
+      {osebe.length > 0 && (
         <div className="mediji-row-osebe">
-          {clanek.osebe.map(o => (
+          {osebe.map(o => (
             <Link
               key={o.id}
               className="mediji-oseba-tag"
@@ -59,8 +96,18 @@ export default function Mediji() {
     fetch(`${API}/clanki?${params}`)
       .then(r => r.json())
       .then(d => {
-        const clanki = Array.isArray(d) ? d : (d.clanki ?? [])
-        setData({ skupaj: d.skupaj ?? clanki.length, clanki })
+        const clankiRaw = Array.isArray(d) ? d : (d.clanki ?? [])
+
+        const clanki = clankiRaw.filter(c =>
+          c.osebe?.some(o =>
+            jeVeljavnoPrikazanoIme(o.ime, o.priimek)
+          )
+        )
+
+        setData({
+          skupaj: clanki.length,
+          clanki
+        })
       })
       .catch(() => setData({ skupaj: 0, clanki: [] }))
       .finally(() => setLoading(false))
