@@ -118,23 +118,44 @@ Pravila:
 
 Besedilo: ${besedilo}`
 
-  const response = await openai.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.1
-  })
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.0 
+    });
 
-  const clean = response.choices[0].message.content.trim()
-    .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    let clean = response.choices[0].message.content.trim()
+      .replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
-  const pod = JSON.parse(clean);
-  pod.osebe = pod.osebe.filter(o => 
-    o.ime.replace(/\s/g, '').length > 2 && 
-    o.priimek.replace(/\s/g, '').length > 2 &&
-    !o.ime.toUpperCase().includes('OO') &&
-    !o.priimek.toUpperCase().includes('IS')
-  );
-  return pod;
+    if (!clean.startsWith('{')) throw new Error("Model ni vrnil JSON-a");
+
+    const pod = JSON.parse(clean);
+
+    const varnoPod = {
+      osebe: Array.isArray(pod.osebe) ? pod.osebe : [],
+      podjetja: Array.isArray(pod.podjetja) ? pod.podjetja : [],
+      povezave: Array.isArray(pod.povezave) ? pod.povezave : []
+    };
+
+    varnoPod.osebe = varnoPod.osebe.filter(o => {
+      const ime = (o.ime || '').replace(/\s/g, '').toUpperCase();
+      const priimek = (o.priimek || '').replace(/\s/g, '').toUpperCase();
+      
+      const neveljavne = ['OO', 'IS', 'NN', 'AZ', 'VV', 'OI', 'SI', 'MB'];
+      
+      return ime.length >= 3 && 
+             priimek.length >= 3 && 
+             !neveljavne.includes(ime) && 
+             !neveljavne.includes(priimek);
+    });
+
+    return varnoPod;
+
+  } catch (err) {
+    console.error("Napaka pri parsiranju LLM odgovora:", err.message);
+    return { osebe: [], podjetja: [], povezave: [] };
+  }
 }
 
 async function jeZeObdelan(url) {
