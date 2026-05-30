@@ -166,7 +166,7 @@ export default function Asistent() {
       <div className="ai-page">
         <div className="ai-header">
           <div>
-            <h1 className="ai-title">AI Asistent</h1>
+            <h1 className="ai-title">Vprašaj AI</h1>
             <p className="ai-desc">Postavljajte vprašanja v naravnem jeziku — asistent poišče odgovore v bazi in na spletu.</p>
           </div>
           <button className="ai-clear-btn" onClick={clearHistory} title="Izbriši zgodovino">
