@@ -76,6 +76,49 @@ router.get('/', async (req, res) => {
   }
 })
 
+// GET /osebe/primerjaj?a=ID1&b=ID2
+router.get('/primerjaj', async (req, res) => {
+  try {
+    const { a, b } = req.query
+    if (!a || !b) return res.status(400).json({ error: 'Manjkata parametra a in b' })
+
+    const [osebaA, osebaB, skupna] = await Promise.all([
+      pool.query(`
+        SELECT o.id, o.ime, o.priimek, o.fotografija_url, o.institucija, o.tip,
+          COUNT(p.id) AS stevilo_povezav
+        FROM osebe o LEFT JOIN povezave p ON p.oseba_id = o.id
+        WHERE o.id = $1 GROUP BY o.id
+      `, [a]),
+      pool.query(`
+        SELECT o.id, o.ime, o.priimek, o.fotografija_url, o.institucija, o.tip,
+          COUNT(p.id) AS stevilo_povezav
+        FROM osebe o LEFT JOIN povezave p ON p.oseba_id = o.id
+        WHERE o.id = $1 GROUP BY o.id
+      `, [b]),
+      pool.query(`
+        SELECT d.id, d.popolno_ime, d.pravna_oblika,
+          pa.vloga AS vloga_a, pa.datum_od AS od_a, pa.datum_do AS do_a,
+          pb.vloga AS vloga_b, pb.datum_od AS od_b, pb.datum_do AS do_b
+        FROM podjetja d
+        JOIN povezave pa ON pa.podjetje_id = d.id AND pa.oseba_id = $1
+        JOIN povezave pb ON pb.podjetje_id = d.id AND pb.oseba_id = $2
+        ORDER BY d.popolno_ime
+      `, [a, b])
+    ])
+
+    if (!osebaA.rows[0]) return res.status(404).json({ error: 'Oseba A ni najdena' })
+    if (!osebaB.rows[0]) return res.status(404).json({ error: 'Oseba B ni najdena' })
+
+    res.json({
+      oseba_a: osebaA.rows[0],
+      oseba_b: osebaB.rows[0],
+      skupna_podjetja: skupna.rows
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // GET /osebe/:id
 router.get('/:id', async (req, res) => {
   try {
