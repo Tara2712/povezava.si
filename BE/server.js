@@ -718,9 +718,10 @@ async function toolGetFeriProfile(name) {
   const o = result.osebe[0]
   if (o.tip !== 'akademik') return `${o.ime} ${o.priimek} ni akademik v bazi — ni FERI profila.`
   if (!o.profil_url) return `${o.ime} ${o.priimek} nima profil URL-ja v bazi.`
-  const data = await fetchProfilData(o.profil_url)
-  if (!data) return `Ni mogoče pridobiti profila ${o.ime} ${o.priimek} s strani ${o.profil_url}.`
-  return `FERI profil — ${o.ime} ${o.priimek} (${o.profil_url}):\n\n${data}`
+  const dbProfil = await pool.query('SELECT feri_profil_text FROM osebe WHERE id=$1', [o.id])
+  const data = dbProfil.rows[0]?.feri_profil_text || await fetchProfilData(o.profil_url)
+  if (!data) return `Ni mogoče pridobiti profila ${o.ime} ${o.priimek}.`
+  return `FERI profil — ${o.ime} ${o.priimek}:\n\n${data}`
 }
 
 const AI_TOOLS = [
@@ -924,9 +925,10 @@ Pravila:
           if (r.found) {
             profil = r.osebe[0]
             result = r.message
-            // Auto-enrich: if akademik has a FERI profile URL, fetch it automatically
+            // Auto-enrich: if akademik has cached FERI profile data, add it
             if (profil?.tip === 'akademik' && profil?.profil_url?.includes('ii.feri.um.si')) {
-              const feriData = await fetchProfilData(profil.profil_url)
+              const dbProfil = await pool.query('SELECT feri_profil_text FROM osebe WHERE id=$1', [profil.id])
+              const feriData = dbProfil.rows[0]?.feri_profil_text || await fetchProfilData(profil.profil_url)
               if (feriData) result += `\n\nPodrobni FERI profil:\n${feriData}`
             }
           } else {
