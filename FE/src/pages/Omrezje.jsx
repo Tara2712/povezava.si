@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import { API } from '../api'
 import { Network } from 'vis-network'
+import { exportNetworkPdf } from '../utils/generateGrafPdf'
 
 const DEPTH_COLORS = ['#3b82f6', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
@@ -209,6 +210,37 @@ export default function Omrezje() {
               >{l}</button>
             ))}
           </div>
+
+        <div className="pdf-btn-wrapper">
+          <button
+            className="prof-btn prof-btn-pdf"
+            onClick={() =>
+              exportNetworkPdf({
+                container: containerRef.current,
+                title: data.center.name,
+                depth,
+                filter,
+                colorMode,
+                stats: {
+                  nodes: data.nodes.length,
+                  edges: data.edges.length,
+                },
+              })
+            }
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <path d="M14 2v6h6" />
+              <path d="M9 15h6" />
+              <path d="M9 11h6" />
+            </svg>
+            Prenesi PDF
+          </button>
+
+          <div className="pdf-tooltip">
+            Pred izvozom nastavite filtre, barvanje in približajte graf — PDF se ustvari glede na trenutni pogled.
+          </div>
+        </div>
         </div>
 
         <div className="omrezje-canvas-wrap">
