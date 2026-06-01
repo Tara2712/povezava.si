@@ -58,6 +58,14 @@ export function useWatchlist() {
         followedAt: new Date().toISOString(),
         lastSeenCount: currentCount,
       })
+      // Pošlji potrditveni email
+      if (user.email) {
+        fetch(`${API}/api/watchlist`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email, oseba_id: oseba.id })
+        }).catch(() => {})
+      }
     } finally {
       setLoading(false)
     }
