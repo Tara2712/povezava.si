@@ -18,15 +18,35 @@ module.exports = function(pool) {
     } catch (e) { res.status(500).json({ error: e.message }) }
   })
 
-  // POST /api/watchlist — sledi osebi
+  // POST /api/watchlist — sledi osebi + pošlji potrditveni email
   router.post('/', async (req, res) => {
     const { email, oseba_id } = req.body
     if (!email || !oseba_id) return res.status(400).json({ error: 'Manjka email ali oseba_id' })
     try {
-      await pool.query(
-        'INSERT INTO watchlist (user_email, oseba_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      const insert = await pool.query(
+        'INSERT INTO watchlist (user_email, oseba_id) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING id',
         [email, oseba_id]
       )
+      // Pošlji potrditveni email samo ob novi sledenju (ne ob podvojenem kliku)
+      if (insert.rows.length > 0 && process.env.RESEND_API_KEY) {
+        const oseba = await pool.query('SELECT ime, priimek FROM osebe WHERE id=$1', [oseba_id])
+        const o = oseba.rows[0]
+        if (o) {
+          const resend = new Resend(process.env.RESEND_API_KEY)
+          resend.emails.send({
+            from: 'Povezava.si <onboarding@resend.dev>',
+            to: email,
+            subject: `Zdaj sledite osebi ${o.ime} ${o.priimek} — Povezava.si`,
+            html: `
+              <h2>Sledenje potrjeno</h2>
+              <p>Uspešno sledite osebi <strong>${o.ime} ${o.priimek}</strong>.</p>
+              <p>Obvestili vas bomo, ko bo oseba dobila novo poslovno povezavo ali se bo pojavila v medijih.</p>
+              <p><a href="https://povezava-si.vercel.app/profil">Oglejte si svoje sledene osebe →</a></p>
+              <p style="color:#999;font-size:12px">Povezava.si — slovensko omrežje poslovnih povezav</p>
+            `
+          }).catch(e => console.warn('Email napaka:', e.message))
+        }
+      }
       res.json({ ok: true })
     } catch (e) { res.status(500).json({ error: e.message }) }
   })
