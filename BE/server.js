@@ -16,6 +16,7 @@ const ovadeniRoutes = require('./routes/ovadeni')
 const bfsRoutes = require('./test6Degrees/bfs_nova')
 const geminiRoutes = require('./routes/gemini_ai')
 const kordinateRoutes = require('./routes/kordinate')
+const watchlistRoutes = require('./routes/watchlist')
 
 
 const app = express()
@@ -58,6 +59,7 @@ app.use('/lobisti', lobistiRoutes)
 app.use('/api/ovadeni', ovadeniRoutes)
 app.use('/ovadeni', ovadeniRoutes)
 app.use('/kordinate', kordinateRoutes)
+app.use('/api/watchlist', watchlistRoutes(pool))
 geminiRoutes.setupRoutes(app)
 
 // GET /osebe — seznam oseb (limit, tip opcijski)
