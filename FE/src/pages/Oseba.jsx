@@ -7,6 +7,7 @@ import { useSavedPersons, useRecentlyViewed, useComparison } from '../hooks/useP
 import { useWatchlist } from '../hooks/useWatchlist'
 import { API } from '../api'
 import { generateOsebaPdf } from '../utils/generateOsebaPdf'
+import RiskScoreCard from '../components/RiskScoreCard'
 
 function fmtDate(d) {
   if (!d) return null
@@ -26,15 +27,59 @@ export default function Oseba() {
   const { track } = useRecentlyViewed()
   const { candidate, select: selectForCompare, clear: clearCompare } = useComparison()
   const { isFollowing, follow, unfollow, loading: watchLoading } = useWatchlist()
+  const [tveganje, setTveganje] = useState(null)
+  const [tveganjeLoading, setTveganjeLoading] = useState(false)
 
-  useEffect(() => {
-    fetch(`${API}/osebe/${id}`)
-      .then(r => { if (!r.ok) throw new Error('Oseba ni najdena'); return r.json() })
-      .then(d => { setData(d); setPovFilter(''); track(d) })
-      .catch(e => setError(e.message))
-    fetch(`${API}/osebe/${id}/clanki`)
-      .then(r => r.json()).then(setClanki).catch(() => {})
-  }, [id])
+useEffect(() => {
+  const controller = new AbortController()
+
+  fetch(`${API}/osebe/${id}`, {
+    signal: controller.signal
+  })
+    .then(r => {
+      if (!r.ok) throw new Error('Oseba ni najdena')
+      return r.json()
+    })
+    .then(d => {
+      setData(d)
+      setPovFilter('')
+      track(d)
+    })
+    .catch(e => {
+      if (e.name !== 'AbortError') {
+        setError(e.message)
+      }
+    })
+
+  fetch(`${API}/osebe/${id}/clanki`, {
+    signal: controller.signal
+  })
+    .then(r => r.json())
+    .then(setClanki)
+    .catch(() => {})
+
+  setTveganjeLoading(true)
+
+  fetch(`${API}/osebe/${id}/tveganje`, {
+    signal: controller.signal
+  })
+    .then(r => {
+      if (!r.ok) throw new Error('Indikatorji tveganja niso na voljo')
+      return r.json()
+    })
+    .then(setTveganje)
+    .catch(e => {
+      if (e.name !== 'AbortError') {
+        console.error(e)
+        setTveganje(null)
+      }
+    })
+    .finally(() => {
+      setTveganjeLoading(false)
+    })
+
+  return () => controller.abort()
+}, [id])
 
   if (error) return <Layout><p className="error-msg">{error}</p></Layout>
   if (!data) return <Layout><p className="loading-msg">Nalagam...</p></Layout>
@@ -167,6 +212,7 @@ export default function Oseba() {
           </div>
         )}
       </div>
+      <RiskScoreCard data={tveganje} loading={tveganjeLoading} />
 
       <div className="section-title-row">
         <p className="section-title">Povezave ({data.povezave?.length || 0})</p>
