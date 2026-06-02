@@ -42,3 +42,8 @@ za potrebe projekta smo zbrale, uredile in shranile v namensko podatkovno bazo, 
 
 3. _Zagon aplikacije_
 
+## Testiranje Frontenda
+- Unit oz. Component testi
+- Vsi testi v mapi /FE/src/test
+- React Testing Library
+- Zagon: `cd ./FE` in nato `npm run test`
