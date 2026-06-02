@@ -22,7 +22,7 @@ export default function RiskScoreCard({ data, loading }) {
           </div>
         </div>
 
-        <div className="risk-score-circle">
+        <div className="risk-score-box">
           <span className="risk-score-num">{score}</span>
           <span className="risk-score-max">/100</span>
         </div>
