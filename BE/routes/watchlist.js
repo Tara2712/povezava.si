@@ -94,24 +94,20 @@ module.exports = function(pool) {
             byEmail[row.user_email].push({ ime: `${row.ime} ${row.priimek}`, povezave: novePovezave.rows })
           }
         }
-        for (const [email, spremembe] of Object.entries(byEmail)) {
+         for (const [email, spremembe] of Object.entries(byEmail)) {
           const seznam = spremembe.map(s =>
             `<li><strong>${s.ime}</strong>: ${s.povezave.map(p => `${p.vloga} pri ${p.popolno_ime}`).join(', ')}</li>`
           ).join('')
+
           await sendMail(
             email,
             'Novosti pri sledenih osebah — Povezava.si',
-            `<h2>Novosti pri osebah ki jim sledite</h2><ul>${seznam}</ul>
+            `<h2>Novosti pri osebah ki jim sledite</h2>
+             <ul>${seznam}</ul>
              <p><a href="https://povezava-si.vercel.app/profil">Oglejte si profil →</a></p>
              <p style="color:#999;font-size:12px">Povezava.si</p>`
           )
-            from: 'Povezava.si <onboarding@resend.dev>',
-            to: email,
-            subject: 'Novosti pri sledenih osebah — Povezava.si',
-            html: `
-              <h2>Novosti pri osebah ki jim sledite</h2>
-              <ul>${seznam}</ul>
-              <p><a href="https://povezava-si.vercel.app/profil">Oglejte si profil →</a></p>
+
           console.log(`Email poslan: ${email}`)
         }
       } catch (e) {
