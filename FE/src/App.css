@@ -3445,8 +3445,14 @@
   .osebe-results { padding: 16px; }
   .osebe-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 }
-@media (max-width: 520px)  { .hstats { grid-template-columns: 1fr; } .hcards-grid { grid-template-columns: repeat(2, 1fr); } }
 
+@media (max-width: 500px) {
+  .osebe-results .osebe-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px)  { .hstats { grid-template-columns: 1fr; } .hcards-grid { grid-template-columns: repeat(2, 1fr); } }
 /* ── Auth split layout ── */
 .auth-split {
   display: flex;
@@ -3781,7 +3787,38 @@
 }
 .mp-photo-input { display: none; }
 /* header actions */
-.mp-header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.mp-header-actions { 
+  margin-left: auto; 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  flex-shrink: 0; 
+  padding-right: 16px;
+  box-sizing: border-box; }
+
+@media (max-width: 700px) {
+  .mp-header {
+    flex-wrap: wrap;
+  }
+
+  .mp-header-actions {
+    margin-left: 0px; 
+    margin-top: -4px;
+    width: auto;
+
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .mp-edit-btn,
+  .mp-logout-btn {
+    width: auto;
+    flex: none;
+    padding: 8px 12px;
+    white-space: nowrap;
+  }
+}
 .mp-edit-btn {
   padding: 8px 16px; border-radius: 8px;
   border: 1.5px solid #e5e7eb; background: #fff;
