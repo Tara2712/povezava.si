@@ -4563,3 +4563,21 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+@media (max-width: 768px) {
+  .mp-section-full {
+    margin-bottom: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .register-list {
+    padding-bottom: 60px;
+  }
+}
+
+@media (max-width: 768px) {
+  .osebe-results {
+    padding-bottom: 100px;
+  }
+}
