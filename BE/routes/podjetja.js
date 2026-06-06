@@ -68,23 +68,6 @@ router.get('/id/:id', async (req, res) => {
   }
 })
 
-
-// GET posameznega podjetja po matični
-router.get('/:maticna', async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT maticna, popolno_ime, posta, pravna_oblika, ulica, hisna_stevilka, postna_stevilka FROM podjetja WHERE maticna = $1',
-      [req.params.maticna]
-    )
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Podjetje ni najdeno' })
-    }
-    res.json(result.rows[0])
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
 // GET /podjetjaVsa — vse informacije o podjetjih (za zemljevid)
 router.get('/podjetjaVsa', async (req, res) => {
   try {
@@ -113,6 +96,23 @@ router.get('/podjetjaVsa', async (req, res) => {
 
     res.json(result.rows)
 
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+
+// GET posameznega podjetja po matični
+router.get('/:maticna', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT maticna, popolno_ime, posta, pravna_oblika, ulica, hisna_stevilka, postna_stevilka FROM podjetja WHERE maticna = $1',
+      [req.params.maticna]
+    )
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Podjetje ni najdeno' })
+    }
+    res.json(result.rows[0])
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
