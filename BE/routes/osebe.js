@@ -1,11 +1,7 @@
 const express = require('express')
-const router = express.Router()
-const { Pool } = require('pg')
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-})
+module.exports = (pool) => {
+  const router = express.Router()
 
 // GET /osebe — seznam z filtri
 router.get('/', async (req, res) => {
@@ -119,7 +115,101 @@ router.get('/primerjaj', async (req, res) => {
   }
 })
 
-// GET /osebe/:id
+// GET /osebe/:id/tveganje — indikatorji tveganja za osebo (MUST be before GET /:id!)
+router.get('/:id/tveganje', async (req, res) => {
+  try {
+    const osebaId = parseInt(req.params.id)
+    if (!osebaId) return res.status(400).json({ error: 'Neveljaven ID osebe' })
+
+    const osebaRes = await pool.query(`SELECT id, ime, priimek FROM osebe WHERE id = $1`, [osebaId])
+    if (!osebaRes.rows.length) return res.status(404).json({ error: 'Oseba ni najdena' })
+
+    const [funkcijeRes, aktivneFunkcijeRes, lobistRes, skupnaTveganaRes] = await Promise.all([
+      pool.query(`SELECT COUNT(*)::int AS n FROM povezave WHERE oseba_id = $1`, [osebaId]),
+      pool.query(`SELECT COUNT(*)::int AS n FROM povezave WHERE oseba_id = $1 AND datum_do IS NULL`, [osebaId]),
+      pool.query(`SELECT COUNT(*)::int AS n FROM lobisti_info WHERE oseba_id = $1 AND datum_izpisa IS NULL`, [osebaId]),
+      pool.query(`
+        WITH moja_podjetja AS (
+          SELECT DISTINCT podjetje_id FROM povezave WHERE oseba_id = $1
+        ),
+        tvegane_osebe AS (
+          SELECT DISTINCT oseba_id FROM lobisti_info WHERE datum_izpisa IS NULL
+        )
+        SELECT COUNT(DISTINCT p.podjetje_id)::int AS n
+        FROM povezave p
+        JOIN moja_podjetja mp ON mp.podjetje_id = p.podjetje_id
+        JOIN tvegane_osebe t ON t.oseba_id = p.oseba_id
+        WHERE p.oseba_id <> $1
+      `, [osebaId])
+    ])
+
+    const stFunkcij = funkcijeRes.rows[0]?.n || 0
+    const aktivneFunkcije = aktivneFunkcijeRes.rows[0]?.n || 0
+    const jeLobist = (lobistRes.rows[0]?.n || 0) > 0
+    const jeOvaden = false
+    const skupnaPodjetjaZVisokoTveganimi = skupnaTveganaRes.rows[0]?.n || 0
+
+    const score = Math.min(
+      100,
+      stFunkcij * 4 +
+      aktivneFunkcije * 8 +
+      (jeLobist ? 25 : 0) +
+      (jeOvaden ? 35 : 0) +
+      skupnaPodjetjaZVisokoTveganimi * 10
+    )
+
+    let stopnja = 'nizka'
+    if (score >= 75) stopnja = 'visoka'
+    else if (score >= 50) stopnja = 'povišana'
+    else if (score >= 25) stopnja = 'zmerna'
+
+    const razlaga = [
+      stFunkcij > 0 ? `${stFunkcij} evidentiranih funkcij v podjetjih ali organizacijah` : null,
+      aktivneFunkcije > 0 ? `${aktivneFunkcije} aktivnih funkcij` : null,
+      jeLobist ? 'oseba je evidentirana kot aktiven lobist' : null,
+      skupnaPodjetjaZVisokoTveganimi > 0 ? `${skupnaPodjetjaZVisokoTveganimi} skupnih podjetij z aktivnimi lobisti` : null
+    ].filter(Boolean)
+
+    res.json({
+      oseba_id: osebaId,
+      ime: osebaRes.rows[0].ime,
+      priimek: osebaRes.rows[0].priimek,
+      score,
+      stopnja,
+      indikatorji: {
+        st_funkcij: stFunkcij,
+        aktivne_funkcije: aktivneFunkcije,
+        je_lobist: jeLobist,
+        je_ovaden: jeOvaden,
+        skupna_podjetja_z_visoko_tveganimi: skupnaPodjetjaZVisokoTveganimi
+      },
+      razlaga,
+      opomba: 'Ocena je avtomatski indikator izpostavljenosti na podlagi podatkov v bazi. Ne predstavlja pravne ugotovitve krivde ali odgovornosti.'
+    })
+  } catch (err) {
+    console.error('Napaka pri izračunu tveganja:', err)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /osebe/:id/clanki — članki kjer se pojavi ta oseba (MUST be before GET /:id!)
+router.get('/:id/clanki', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT c.id, c.naslov, c.url, c.vir, c.datum
+      FROM clanki c
+      JOIN clanki_osebe co ON co.clanek_id = c.id
+      WHERE co.oseba_id = $1
+      ORDER BY c.datum DESC
+      LIMIT 10
+    `, [req.params.id])
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /osebe/:id — profil osebe (GENERAL route after specific ones)
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params
@@ -141,4 +231,5 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-module.exports = router
+  return router
+}

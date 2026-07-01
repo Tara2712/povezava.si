@@ -118,6 +118,29 @@ router.get('/:maticna', async (req, res) => {
   }
 })
 
+// GET /podjetja/:id — profil podjetja z osebami (from publicPodjetja)
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const podjetje = await pool.query(`SELECT * FROM podjetja WHERE id = $1`, [id])
+    if (podjetje.rows.length === 0) return res.status(404).json({ error: 'Podjetje ni najdeno' })
+
+    const osebe = await pool.query(`
+      SELECT p.vloga, p.vir, p.datum_od, p.datum_do,
+        o.id AS oseba_id, o.ime, o.priimek
+      FROM povezave p
+      JOIN osebe o ON o.id = p.oseba_id
+      WHERE p.podjetje_id = $1
+      ORDER BY p.vloga
+    `, [id])
+
+    res.json({ ...podjetje.rows[0], osebe: osebe.rows })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 
 /*
 // GET /podjetja — seznam podjetij (limit opcijski)
