@@ -72,7 +72,9 @@ for (const file of fs.readdirSync(routesDir).filter((name) => name.endsWith('.js
     ? loadedRoute
     : typeof loadedRoute === 'function'
       ? loadedRoute(pool)
-      : null
+      : loadedRoute && typeof loadedRoute.createRouter === 'function'
+        ? loadedRoute.createRouter(pool)
+        : null
 
   if (router && typeof router.handle === 'function') {
     const prefix = routePrefixes[routeName] || `/${routeName}`
