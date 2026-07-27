@@ -4,23 +4,23 @@
 [x] osnovni ui
     [x] zemljevid slovenije - točke prikazujejo podjetja
 [X] prikaz baze na fe
-[] urejanje in brisanje obstoječih zapisov
-[] README.md dopolnit
+[x] urejanje in brisanje obstoječih zapisov
+[x] README.md dopolnit
 
 ## do konca 24.5.
-[] filtriranje po panogi
-[] export podatkov
+[x] filtriranje po panogi
+[x] export podatkov
 ...
 
-[] zajemanje podatkov iz javno dostopnih virov
-    [] opsi
-    [] ajpes - lastniki
+[x] zajemanje podatkov iz javno dostopnih virov
+    [x] opsi
+    [x] ajpes - lastniki
     ...
-[] shranjevanje podatkov v bazo
-[] ui
-    [] responsive design za različne naprave
-[] vključite gemini ai za povezave
-[]verifikacija podatkov in samodejno zaznavanje podvojenih oseb 
+[x] shranjevanje podatkov v bazo
+[x] ui
+    [x] responsive design za različne naprave
+[x] vključite gemini ai za povezave
+[x]verifikacija podatkov in samodejno zaznavanje podvojenih oseb 
 
 
 
@@ -36,14 +36,17 @@
     [x] iskanje po zemljevidu
     [x] popravi backend (preveč obremnjen server)
 [x] osnovna logika grafa
-    [] izvoz podatkov v pdf
+    [x] izvoz podatkov v pdf
 [x] Izvoz podatkov profila osebe v pdf
 [x] Izvoz podatkov profila podjetja v pdf
 [x] fix homepage iskanje
-[] Scrapanje člankov
-[] Testiranje frontend
-[] Dokumentiranje Jira
-[] Responsive ui za mobilne naprave
+[x] Scrapanje člankov
+[x] Testiranje frontend
+[x] Testiranje backend - popravi routes
+[x] Dokumentiranje Jira
+[x] Responsive ui za mobilne naprave
+[x] Use case diagram
+[x] Er diagram
 
 
 
@@ -59,13 +62,13 @@
     [X] opsi podatki o podjetjih
 [X] vzpostavitev BE na render
 [X] vzpostavitev FE na vercel
-[] 6 degrees of seperation 
-    [] model za povezovanje med podjetji, osebami, regijami, mediji,...
-    [] razširi na osebe--podjetja, osebe-osebe,..
+[x] 6 degrees of seperation 
+    [x] model za povezovanje med podjetji, osebami, regijami, mediji,...
+    [x] razširi na osebe--podjetja, osebe-osebe,..
     [] Ai model za iskanje
-[] Scrapanje člankov
+[x] Scrapanje člankov
 [] Ustvari piškote
-[] Testiranje backend
-[] Dokumentiranje Jira
+[x] Testiranje backend
+[x] Dokumentiranje Jira
 [] Popravi in dopolni dokumentacijo
-[] Responsive ui za mobilne naprave
+[x] Responsive ui za mobilne naprave
