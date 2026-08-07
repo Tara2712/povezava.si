@@ -1,16 +1,42 @@
 <p align="center">
 <img src="FE/public/logo.png" alt="povezava.si" height="100px" style="border-radius: 16px;">
+<br>
+<a href="https://povezava-si.vercel.app/">Povezava.si</a>
 </p>
 <p align="center">
 Avtorji: Sanja Muršič, Chantal Pia Ribič, Tara Sedovšek
 </p>
 <p align="center">
-Spletna platforma za vizualizacijo povezav med slovenskimi podjetji, osebami in organizacijami.
+Povezava.si je spletna platforma za pregled in vizualizacijo povezav med slovenskimi podjetji, osebami in organizacijami na podlagi javno dostopnih podatkov. Uporabnikom omogoča iskanje subjektov, prikaz povezav v interaktivnem grafu ter pregled osnovnih informacij o podjetjih in njihovih vlogah.
 </p>
+
+## Kazalo
+
+- [O projektu](#o-projektu)
+- [Glavne funkcionalnosti](#glavne-funkcionalnosti)
+    - [Diagram primerov uporabe](#diagram-primerov-uporabe)
+- [Pridobivanje virov](#pridobivanje-virov)
+    - [Podjetja](#podjetja)
+    - [Osebe in lastniki podjetji](#osebe-in-lastniki-podjetji)
+    - [Profesorji](#profesorji)
+    - [Članki](#članki)
+    - [Lobisti in kazensko ovadene osebe](#lobisti-in-kazensko-ovadene-osebe)
+
+<br>
+Podrobnejša dokumentacija projekta je znotraj mape /docs
+
 
 ## O projektu
 
-Povezava.si je spletna platforma za pregled in vizualizacijo povezav med slovenskimi podjetji, osebami in organizacijami na podlagi javno dostopnih podatkov. Uporabnikom omogoča iskanje subjektov, prikaz povezav v interaktivnem grafu ter pregled osnovnih informacij o podjetjih in njihovih vlogah.
+
+Povezava.si je nastala kot projekt v okviru študija na Fakulteti za elektrotehniko, računalništvo in informatiko Univerze v Mariboru. Namen platforme je narediti povezave med slovenskimi podjetji, osebami in organizacijami vidne in razumljive informacije, ki so sicer razpršene po različnih javnih registrih, tukaj združimo v enoten, iskalen in vizualno pregleden sistem.
+
+Osrčje aplikacije predstavlja podatkovna baza, zgrajena z avtomatiziranim zajemom podatkov iz javno dostopnih virov, med drugim OPSI, AJPES, ERAR in KPK. Podatke o podjetjih in njihovih lastnikih pridobivamo s po meri razvitimi Python scraperji, ki zaradi obsega podatkov delujejo prek vzporednih delavcev (workerjev), s čimer smo čas zajema skrajšale iz predvidenih 80 dni na bistveno krajše obdobje. Ob tem samodejno zaznavamo in združujemo podvojene zapise oseb, kar zagotavlja čistejšo in zanesljivejšo bazo.
+
+Povezave med subjekti, podjetji, osebami, regijami in mediji, gradimo po principu "šest stopenj ločenosti" (six degrees of separation), ki omogoča iskanje najkrajše poti oziroma povezanosti med poljubnima dvema subjektoma v grafu. Za dodatno globino razumevanja povezav smo vključile jezikovni model (Anthropic), ki uporabniku v naravnem jeziku razloži, zakaj in kako sta dva subjekta povezana.
+
+Uporabnik lahko subjekte išče in filtrira po panogi, si ogleda njihov profil s ključnimi podatki in aktivnostjo, jih med seboj primerja ter si podatke izvozi v PDF. Podjetja so prikazana tudi na interaktivnem zemljevidu Slovenije, kjer je lokacije mogoče geokodirati, filtrirati in iskati. Za dodatno kontekstualizacijo povezujemo subjekte tudi z novičarskimi članki, zajetimi iz slovenskih medijev.
+
 
 ## Glavne funkcionalnosti
  - Registracija in prijava
@@ -21,11 +47,19 @@ Povezava.si je spletna platforma za pregled in vizualizacijo povezav med slovens
  - pregled člankov, ki so povezani z osebami
  - uporaba umetne inteligence za razlago povezav
 
-Podrobna sistemska zasnova in projektna organizacija sta opisani v datoteki [`SZPO.pdf`](./dokumentacija-diagrami/SZPO.pdf)
+Podrobna sistemska zasnova in projektna organizacija sta opisani v datoteki [`SZPO.pdf`](./dokumentacija/SZPO.pdf)
+
+### Diagram primerov uporabe
+
+<picture>
+  <img alt="Diagram primerov uporabe" src="dokumentacija/diagrami/DPU/UseCase_Povezave.si.png">
+</picture>
 
 ## Pridobivanje virov
 Podatki, uporabljeni v platformi, izvirajo iz več javno dostopnih virov in so bili pridobljeni na različne načine. Zaradi obsega in narave podatkov niso vključeni neposredno v repozitorij.
 
+> [!WARNING]
+> TODO: popravi vire
 ### Podjetja
 Osnovni seznam podjetij smo pridobile iz portala **[OPSI](https://podatki.gov.si/dataset/poslovni-register-slovenije)** (Odprti podatki Slovenije). Za podrobnejše podatke o posameznih podjetjih smo se obrnile na **[AJPES](https://www.ajpes.si/)**, ki nam je posredoval testne podatke za 40 podjetij. 
 
@@ -62,7 +96,7 @@ Podatke o lobistih in kazensko ovadenih smo pridobile iz naslednjih javno dostop
 - **[KPK](https://www.kpk-rs.si/)** (Komisija za preprečevanje korupcije)
 
 > [!NOTE]
-> Za podrobna navodila za zagon glej razdelek [Namestitev in zagon](#namestitev-in-zagon-projektas).
+> Za podrobna navodila za zagon glej razdelek [Namestitev in zagon](#namestitev-in-zagon-projekta).
 
 
 ## Tehhnološki nabor
