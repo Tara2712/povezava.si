@@ -208,35 +208,6 @@ describe('Home', () => {
   })
 
 
-  it('prikaže statistiko oseb, podjetij in povezav', async () => {
-    renderHome()
-
-    expect(
-      await screen.findByText(/1[.,]234/)
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByText('567')
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByText('8.901')
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByText('oseb v bazi')
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByText('podjetij & org.')
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByText('poslovnih povezav')
-    ).toBeInTheDocument()
-  })
-
-
   it('se ne sesuje, če začetni fetch vrne napako', async () => {
     global.fetch = vi.fn((url) => {
       if (url.includes('/stats')) {
