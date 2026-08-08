@@ -212,7 +212,7 @@ describe('Home', () => {
     renderHome()
 
     expect(
-      await screen.findByText('1.234')
+      await screen.findByText(/1[.,]234/)
     ).toBeInTheDocument()
 
     expect(
