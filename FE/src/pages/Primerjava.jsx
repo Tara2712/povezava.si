@@ -24,13 +24,39 @@ export default function Primerjava() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (!aId || !bId) { setError('Manjkata osebi za primerjavo.'); setLoading(false); return }
+    if (!aId || !bId) {
+      setError('Manjkata osebi za primerjavo.')
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
+
     fetch(`${API}/osebe/primerjaj?a=${aId}&b=${bId}`)
-      .then(r => { if (!r.ok) throw new Error('Napaka pri nalaganju'); return r.json() })
-      .then(d => { setData(d); setLoading(false) })
-      .catch(e => { setError(e.message); setLoading(false) })
+      .then(r => {
+        if (!r.ok) throw new Error('Napaka pri nalaganju')
+        return r.json()
+      })
+      .then(d => {
+        if (
+          !d ||
+          !d.oseba_a ||
+          !d.oseba_b ||
+          !Array.isArray(d.skupna_podjetja)
+        ) {
+          throw new Error('Neveljaven odgovor strežnika')
+        }
+
+        setData(d)
+        setLoading(false)
+      })
+      .catch(e => {
+        setError(e.message)
+        setLoading(false)
+      })
   }, [aId, bId])
+
+
 
   if (loading) return <Layout><p className="loading-msg">Nalagam primerjavo...</p></Layout>
   if (error)   return <Layout><p className="error-msg">{error}</p></Layout>

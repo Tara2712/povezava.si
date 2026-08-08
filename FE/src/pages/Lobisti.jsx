@@ -57,11 +57,23 @@ export default function Lobisti() {
 
   useEffect(() => {
     setLoading(true)
+
     const url = `${API}/lobisti?limit=100${dq ? `&q=${encodeURIComponent(dq)}` : ''}`
+
     fetch(url)
       .then(r => r.json())
-      .then(setData)
-      .catch(() => setData({ skupaj: 0, lobisti: [] }))
+      .then(result => {
+        setData({
+          skupaj: result?.skupaj ?? 0,
+          lobisti: Array.isArray(result?.lobisti) ? result.lobisti : [],
+        })
+      })
+      .catch(() => {
+        setData({
+          skupaj: 0,
+          lobisti: [],
+        })
+      })
       .finally(() => setLoading(false))
   }, [dq])
 
